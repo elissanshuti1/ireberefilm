@@ -10,9 +10,26 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Play, Sparkles, Star } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Layers, Play, Sparkles, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { MovieView } from "@/lib/types";
+
+type HeroMovie = Pick<
+  MovieView,
+  | "slug"
+  | "accent"
+  | "glow"
+  | "kicker"
+  | "title"
+  | "tagline"
+  | "rating"
+  | "year"
+  | "duration"
+  | "genre"
+  | "poster"
+  | "creator"
+  | "isSeason"
+> & { episodeCount: number };
 
 const variants = {
   enter: (direction: number) => ({
@@ -39,7 +56,7 @@ export default function HeroCarousel({
   ctaLabel = "Kureba Nonaha",
   secondaryLabel = "Soma Byinshi",
 }: {
-  movies: MovieView[];
+  movies: HeroMovie[];
   ctaLabel?: string;
   secondaryLabel?: string;
 }) {
@@ -140,7 +157,15 @@ export default function HeroCarousel({
                 <span className="text-[11px] font-bold tracking-[0.22em] text-gold uppercase">
                   {movie.kicker ?? "Agasobanuye"}
                 </span>
-                <span className="size-1.5 animate-pulse rounded-full bg-gold" />
+                {movie.isSeason && (
+                  <>
+                    <span className="size-1.5 animate-pulse rounded-full bg-gold" />
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gold uppercase">
+                      <Layers className="size-3.5" />
+                      Season · {movie.episodeCount} {movie.episodeCount === 1 ? "gice" : "ibice"}
+                    </span>
+                  </>
+                )}
               </motion.div>
 
               <h1 className="font-display text-[clamp(3.2rem,8vw,6.6rem)] leading-[0.94] font-extrabold tracking-[-0.045em]">

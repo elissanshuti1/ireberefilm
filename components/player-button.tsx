@@ -2,12 +2,22 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowUpRight, ExternalLink, Play, X } from "lucide-react";
+import { ArrowUpRight, Play, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { reportBrokenAction } from "@/lib/actions";
 import type { MovieView } from "@/lib/types";
 
-export default function PlayerButton({ movie }: { movie: MovieView }) {
+type WatchData = Pick<MovieView, "slug" | "title" | "poster" | "creator" | "embedUrl">;
+
+export default function PlayerButton({
+  movie,
+  label = "Tangira Kureba",
+  subtitle,
+}: {
+  movie: WatchData;
+  label?: string;
+  subtitle?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [started, setStarted] = useState(false);
 
@@ -29,6 +39,8 @@ export default function PlayerButton({ movie }: { movie: MovieView }) {
     setStarted(false);
   };
 
+  if (!movie.embedUrl) return null;
+
   return (
     <>
       <button
@@ -40,7 +52,7 @@ export default function PlayerButton({ movie }: { movie: MovieView }) {
         <span className="relative grid size-9 place-items-center rounded-full bg-ink/10 transition-transform duration-300 group-hover:scale-110">
           <Play className="size-4 translate-x-px fill-ink" />
         </span>
-        <span className="relative">Tangira Kureba</span>
+        <span className="relative">{label}</span>
         <ArrowUpRight className="relative size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
       </button>
 
@@ -65,7 +77,7 @@ export default function PlayerButton({ movie }: { movie: MovieView }) {
               <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
                 <div>
                   <p className="text-[10px] font-bold tracking-[0.2em] text-gold uppercase">Ireberefilm Player</p>
-                  <p className="font-display mt-1 text-lg font-bold">{movie.title}</p>
+                  <p className="font-display mt-1 text-lg font-bold">{subtitle ?? movie.title}</p>
                 </div>
                 <button
                   type="button"
@@ -79,7 +91,7 @@ export default function PlayerButton({ movie }: { movie: MovieView }) {
 
               <div className="relative aspect-video bg-black">
                 <AnimatePresence mode="wait">
-                  {started && movie.playback === "embed" && movie.embedUrl ? (
+                  {started ? (
                     <motion.div
                       key="frame"
                       initial={{ opacity: 0 }}
@@ -94,33 +106,6 @@ export default function PlayerButton({ movie }: { movie: MovieView }) {
                         referrerPolicy="no-referrer"
                         className="size-full border-0"
                       />
-                    </motion.div>
-                  ) : started ? (
-                    <motion.div
-                      key="link"
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-ink-3 px-6 text-center"
-                    >
-                      <div className="relative grid size-20 place-items-center rounded-full border border-gold/40 bg-gold/10">
-                        <span className="pulse-ring absolute inset-0 rounded-full bg-gold/20" />
-                        <ExternalLink className="size-8 text-gold" />
-                      </div>
-                      <div>
-                        <p className="font-display text-xl font-bold">Filime iri kuri {movie.source}</p>
-                        <p className="mt-2 text-sm text-white/45">
-                          Tuzajya kureba filime ku rubuga rw&apos;umwimerere.
-                        </p>
-                      </div>
-                      <a
-                        href={movie.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-full bg-gold px-6 py-3 text-sm font-bold text-ink"
-                      >
-                        Sura {movie.source}
-                        <ArrowUpRight className="size-4" />
-                      </a>
                     </motion.div>
                   ) : (
                     <motion.div key="poster" className="absolute inset-0">
@@ -153,7 +138,7 @@ export default function PlayerButton({ movie }: { movie: MovieView }) {
                 </AnimatePresence>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 text-xs text-white/45">
+              <div className="flex items-center justify-between gap-3 px-6 py-4 text-xs text-white/45">
                 <span>{movie.creator}</span>
                 <form action={reportBrokenAction}>
                   <input type="hidden" name="slug" value={movie.slug} />
@@ -161,7 +146,6 @@ export default function PlayerButton({ movie }: { movie: MovieView }) {
                     Link yatamye? Tubimenyeshe
                   </button>
                 </form>
-                <span className="text-gold">Inkomoko: {movie.source}</span>
               </div>
             </motion.div>
           </motion.div>

@@ -15,12 +15,12 @@ const values = [
   {
     icon: Compass,
     title: "Byose ahantu hamwe",
-    text: "Filime, umusobanuzi, icyiciro n'inkomoko. Ntuzongera gushakisha hirya no hino.",
+    text: "Filime, umusobanuzi n'icyiciro. Ntuzongera gushakisha hirya no hino.",
   },
   {
     icon: HeartHandshake,
     title: "Icyubahiro kuri bose",
-      text: "Buri filime izana n'izina ry'umusobanuzi n'urubuga rw'umwimerere.",
+      text: "Buri filime izana n'izina ry'umusobanuzi.",
   },
   {
     icon: ShieldCheck,
@@ -124,8 +124,8 @@ export default async function AboutPage() {
             Abayikora baboneka.
           </h2>
           <p className="mt-6 text-base leading-8 text-white/55">
-            Filime zose ziri kuri ireberefilm zifite izina ry&apos;umusobanuzi n&apos;isano
-            n&apos;urubuga rw&apos;umwimerere. Ntitudukora cyangwa ngo tuzigabanye uburenganzira
+            Filime zose ziri kuri ireberefilm zifite izina ry&apos;umusobanuzi.
+            Ntitudukora cyangwa ngo tuzigabanye uburenganzira
             bwazo. Niba uri nyir&apos;uburenganzira ukabona ko hari ikintu kitakwiriye kuba hano,
             tuzandikira kuri{" "}
             <a href="mailto:icyubahiro@ireberefilm.rw" className="font-bold text-gold hover:underline">

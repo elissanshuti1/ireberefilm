@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Clock, ExternalLink, Film, Play, Sparkles, Star, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Clock, ExternalLink, Film, Layers, Play, Sparkles, Star, UserRound } from "lucide-react";
 import MovieCard from "@/components/movie-card";
 import PlayerButton from "@/components/player-button";
 import Reveal from "@/components/reveal";
@@ -40,6 +40,15 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
 
   const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
   const view = toMovieView(movie, colors[movie.genre]);
+  const canEmbed = !view.isSeason && view.playback === "embed" && Boolean(view.embedUrl);
+  const canWatchOutside = !view.isSeason && Boolean(view.sourceUrl) && view.sourceUrl !== "#";
+  const watchData = {
+    slug: view.slug,
+    title: view.title,
+    poster: view.poster,
+    creator: view.creator,
+    embedUrl: view.embedUrl,
+  };
   const related = [
     ...allMovies.filter((item) => item.slug !== movie.slug && item.genre === movie.genre),
     ...allMovies.filter((item) => item.slug !== movie.slug && item.genre !== movie.genre),
@@ -119,6 +128,12 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
               <span className="glass-soft flex items-center gap-2 rounded-full px-4 py-2">
                 <Film className="size-3.5 text-gold" /> {view.year}
               </span>
+              {view.isSeason && (
+                <span className="glass-soft flex items-center gap-2 rounded-full px-4 py-2 text-gold">
+                  <Layers className="size-3.5" />
+                  Season · {view.episodes.length} {view.episodes.length === 1 ? "gice" : "ibice"}
+                </span>
+              )}
             </div>
 
             <p className="mt-8 max-w-2xl text-base leading-8 text-white/60 sm:text-lg">
@@ -126,16 +141,35 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
-              <PlayerButton movie={view} />
-              <a
-                href={view.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 rounded-full border border-white/15 px-6 py-4 text-sm font-bold text-white/70 transition-all hover:border-gold/50 hover:bg-gold/10 hover:text-gold"
-              >
-                Inkomoko: {view.source}
-                <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </a>
+              {view.isSeason ? (
+                <a
+                  href="#ibice"
+                  className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-gold px-8 py-4 text-sm font-extrabold text-ink shadow-[0_20px_60px_-22px_rgba(247,183,51,0.95)] transition-transform duration-300 hover:scale-[1.04]"
+                >
+                  <span className="pulse-ring absolute inset-0 rounded-full bg-white/30" />
+                  <span className="relative grid size-9 place-items-center rounded-full bg-ink/10 transition-transform duration-300 group-hover:scale-110">
+                    <Layers className="size-4" />
+                  </span>
+                  <span className="relative">Reba ibice</span>
+                  <ArrowUpRight className="relative size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </a>
+              ) : canEmbed ? (
+                <PlayerButton movie={watchData} />
+              ) : canWatchOutside ? (
+                <a
+                  href={view.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-gold px-8 py-4 text-sm font-extrabold text-ink shadow-[0_20px_60px_-22px_rgba(247,183,51,0.95)] transition-transform duration-300 hover:scale-[1.04]"
+                >
+                  <span className="pulse-ring absolute inset-0 rounded-full bg-white/30" />
+                  <span className="relative grid size-9 place-items-center rounded-full bg-ink/10 transition-transform duration-300 group-hover:scale-110">
+                    <ExternalLink className="size-4" />
+                  </span>
+                  <span className="relative">Kureba Hanze</span>
+                  <ArrowUpRight className="relative size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </a>
+              ) : null}
             </div>
 
             <div className="glass-soft mt-9 flex max-w-xl items-center gap-4 rounded-2xl px-5 py-4">
@@ -156,6 +190,71 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
         </div>
       </section>
 
+      {view.isSeason && (
+        <section id="ibice" className="relative border-y border-white/[0.06] bg-ink-2/60 py-20">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <SectionHeading
+              eyebrow="Season"
+              title="Ibigice byose"
+              description={`${view.episodes.length} ${view.episodes.length === 1 ? "gice" : "ibice"} muri iyi season.`}
+            />
+            {view.episodes.length === 0 ? (
+              <Reveal>
+                <p className="rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-8 text-sm text-white/40">
+                  Nta gice kiriho ubu. Ubushe administrateur yongeramo ibice.
+                </p>
+              </Reveal>
+            ) : (
+              <div className="grid gap-3">
+                {view.episodes.map((episode, index) => {
+                  const episodeWatchData = {
+                    slug: view.slug,
+                    title: episode.title,
+                    poster: view.poster,
+                    creator: view.creator,
+                    embedUrl: episode.embedUrl,
+                  };
+                  return (
+                    <Reveal key={episode.id} delay={Math.min(index, 6) * 0.05}>
+                      <div className="glass-soft flex flex-wrap items-center gap-4 rounded-2xl p-4 transition-colors hover:border-gold/30 sm:p-5">
+                        <span className="font-display grid size-12 shrink-0 place-items-center rounded-xl bg-gold/10 text-lg font-extrabold text-gold">
+                          {String(episode.number).padStart(2, "0")}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-display text-base font-bold text-white sm:text-lg">
+                            {episode.title}
+                          </p>
+                          <p className="mt-1 text-xs text-white/35">
+                            Igice cya {episode.number} · {view.title}
+                          </p>
+                        </div>
+                        {episode.playback === "embed" && episode.embedUrl ? (
+                          <PlayerButton
+                            movie={episodeWatchData}
+                            label="Kureba"
+                            subtitle={episode.title}
+                          />
+                        ) : (
+                          <a
+                            href={episode.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-white/70 transition-all hover:border-gold/50 hover:bg-gold/10 hover:text-gold"
+                          >
+                            Kureba Hanze
+                            <ArrowUpRight className="size-4" />
+                          </a>
+                        )}
+                      </div>
+                    </Reveal>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       <section id="byinshi" className="relative border-y border-white/[0.06] bg-ink-2/60 py-20">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <SectionHeading eyebrow="Byinshi kuri iyi filime" title="Ibyo wamenya" />
@@ -164,7 +263,11 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
               { label: "Izina ry'umwimerere", value: view.originalTitle, icon: Film },
               { label: "Icyiciro", value: view.genre, icon: Sparkles },
               { label: "Umwaka", value: String(view.year), icon: Play },
-              { label: "Uko iboneka", value: view.playback === "embed" ? "Kureba hano" : "Gukurikirana inkomoko", icon: ExternalLink },
+              {
+                label: "Uko iboneka",
+                value: view.isSeason ? `Season · ${view.episodes.length}` : canEmbed ? "Kureba hano" : "Kuranga hanze",
+                icon: view.isSeason ? Layers : Play,
+              },
             ].map((item, index) => (
               <Reveal key={item.label} delay={index * 0.07}>
                 <div className="glass-soft h-full rounded-2xl p-5 transition-all duration-500 hover:-translate-y-1 hover:border-gold/30">
@@ -177,8 +280,8 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
           </div>
           <Reveal delay={0.2}>
             <p className="mt-8 max-w-3xl text-sm leading-7 text-white/40">
-              Iyi filime iboneka kubera ubufatanye n&apos;abayikora. Tuzihesha icyubahiro
-              umusobanuzi n&apos;urubuga rw&apos;umwimerere. Niba uri nyir&apos;uburenganzira
+              Iyi filime iboneka kugira ngo abakunda agasobanuye bayirebe byoroshye.
+              Tuzihesha icyubahiro umusobanuzi. Niba uri nyir&apos;uburenganzira
               ukaba ushaka gukuraho iyi filime,{" "}
               <Link href="/about#icyubahiro" className="text-gold hover:underline">
                 usome uburyo hano

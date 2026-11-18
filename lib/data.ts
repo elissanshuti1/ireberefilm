@@ -7,6 +7,7 @@ import {
   serializeMovie,
 } from "@/lib/db";
 import { posterSrc } from "@/lib/poster";
+import { decodeParam, normalizeSlug } from "@/lib/slug";
 import { defaultSettings } from "@/lib/settings";
 import type { GenreRecord, MovieRecord, PublicMovie, SiteSettings } from "@/lib/types";
 
@@ -16,7 +17,7 @@ function toPublic(movie: MovieRecord): PublicMovie {
 
 export async function getAllMovies(): Promise<MovieRecord[]> {
   const collection = await getMoviesCollection();
-  const docs = await collection.find({}).sort({ updatedAt: -1 }).toArray();
+  const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
   return docs.map((doc) => serializeMovie(doc as Record<string, unknown>));
 }
 
@@ -26,10 +27,16 @@ export async function getPublicMovies(): Promise<PublicMovie[]> {
 }
 
 export async function getMovieBySlug(slug: string): Promise<PublicMovie | null> {
+  const decoded = decodeParam(slug);
+  const candidates = Array.from(
+    new Set([slug, decoded, normalizeSlug(decoded)].filter(Boolean)),
+  );
   const collection = await getMoviesCollection();
-  const doc = await collection.findOne({ slug });
-  if (!doc) return null;
-  return toPublic(serializeMovie(doc as Record<string, unknown>));
+  for (const candidate of candidates) {
+    const doc = await collection.findOne({ slug: candidate });
+    if (doc) return toPublic(serializeMovie(doc as Record<string, unknown>));
+  }
+  return null;
 }
 
 export async function getMovieById(id: string): Promise<MovieRecord | null> {
@@ -46,7 +53,7 @@ export async function getFeaturedMovies(): Promise<PublicMovie[]> {
 
 export async function getNewMovies(limit = 8): Promise<PublicMovie[]> {
   const movies = await getPublicMovies();
-  return [...movies].sort((a, b) => b.year - a.year).slice(0, limit);
+  return movies.slice(0, limit);
 }
 
 export async function getPopularMovies(limit = 6): Promise<PublicMovie[]> {

@@ -1,5 +1,5 @@
 import { MongoClient, ObjectId } from "mongodb";
-import type { GenreRecord, MovieRecord } from "@/lib/types";
+import type { EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
 
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB ?? "ireberefilm";
@@ -46,6 +46,17 @@ export function toId(value: unknown) {
   return value instanceof ObjectId ? value.toHexString() : String(value);
 }
 
+function serializeEpisode(doc: Record<string, unknown>, index: number): EpisodeRecord {
+  return {
+    id: String(doc.id ?? toId(doc._id ?? index)),
+    number: Number(doc.number ?? index + 1),
+    title: String(doc.title ?? `Igice cya ${index + 1}`),
+    playback: doc.playback === "link" ? "link" : "embed",
+    embedUrl: doc.embedUrl ? String(doc.embedUrl) : null,
+    sourceUrl: String(doc.sourceUrl ?? ""),
+  };
+}
+
 export function serializeMovie(doc: Record<string, unknown>): MovieRecord {
   return {
     id: toId(doc._id),
@@ -64,6 +75,12 @@ export function serializeMovie(doc: Record<string, unknown>): MovieRecord {
     sourceUrl: String(doc.sourceUrl ?? "#"),
     playback: doc.playback === "embed" ? "embed" : "link",
     embedUrl: doc.embedUrl ? String(doc.embedUrl) : null,
+    isSeason: Boolean(doc.isSeason),
+    episodes: Array.isArray(doc.episodes)
+      ? doc.episodes.map((episode, index) =>
+          serializeEpisode(episode as Record<string, unknown>, index),
+        )
+      : [],
     featured: Boolean(doc.featured),
     published: doc.published !== false,
     linkStatus:

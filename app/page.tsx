@@ -32,7 +32,24 @@ export default async function Home() {
   ]);
 
   const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
-  const heroMovies = toMovieViews(featured.length ? featured : newMovies.slice(0, 6), colors);
+  const heroMovies = toMovieViews(featured.length ? featured : newMovies.slice(0, 6), colors).map(
+    (movie) => ({
+      slug: movie.slug,
+      accent: movie.accent,
+      glow: movie.glow,
+      kicker: movie.kicker,
+      title: movie.title,
+      tagline: movie.tagline,
+      rating: movie.rating,
+      year: movie.year,
+      duration: movie.duration,
+      genre: movie.genre,
+      poster: movie.poster,
+      creator: movie.creator,
+      isSeason: movie.isSeason,
+      episodeCount: movie.episodes.length,
+    }),
+  );
   const newViews = toMovieViews(newMovies, colors);
   const popularViews = toMovieViews(popular, colors);
   const spot = heroMovies[0];
@@ -219,8 +236,7 @@ export default async function Home() {
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-base leading-8 text-white/50">
               Ireberefilm ikusanya filime z&apos;Abanyamerika, Abahinde n&apos;izindi za cinema
-              y&apos;isi, zose zisobanurwa mu Kinyarwanda, hamwe n&apos;izina ry&apos;umusobanuzi
-              n&apos;inkomoko yazo.
+              y&apos;isi, zose zisobanurwa mu Kinyarwanda, hamwe n&apos;izina ry&apos;umusobanuzi.
             </p>
             <Link
               href="/browse"

@@ -12,19 +12,12 @@ import {
   getPostersBucket,
 } from "@/lib/db";
 import { deletePoster, uploadPoster } from "@/lib/images";
+import { normalizeSlug } from "@/lib/slug";
 import type { ActionState } from "@/lib/action-state";
+import type { EpisodeRecord } from "@/lib/types";
 
 function field(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 function safeUrl(value: string, label: string) {
@@ -48,6 +41,37 @@ function safeEmbedUrl(value: string) {
     throw new Error("Embed link igomba kuba ya vsembed, youtube cyangwa oshakurfilms");
   }
   return url;
+}
+
+function episodesFromForm(formData: FormData): EpisodeRecord[] {
+  const ids = field(formData, "episodeIds")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+
+  return ids
+    .map((id, index) => {
+      const number = Number(field(formData, `episode-${id}-number`)) || index + 1;
+      const title = field(formData, `episode-${id}-title`) || `Igice cya ${number}`;
+      const playback: EpisodeRecord["playback"] =
+        field(formData, `episode-${id}-playback`) === "link" ? "link" : "embed";
+      const sourceUrl = safeUrl(
+        field(formData, `episode-${id}-sourceUrl`),
+        `Link ya ${title}`,
+      );
+      const embedUrl =
+        playback === "embed"
+          ? safeEmbedUrl(field(formData, `episode-${id}-embedUrl`) || sourceUrl)
+          : null;
+      if (playback === "embed" && !embedUrl) {
+        throw new Error(`Shyira embed link ya ${title}`);
+      }
+      if (playback === "link" && !sourceUrl) {
+        throw new Error(`Shyira link ya ${title}`);
+      }
+      return { id, number, title, playback, embedUrl, sourceUrl };
+    })
+    .sort((a, b) => a.number - b.number);
 }
 
 function revalidatePublic(slug?: string) {
@@ -101,13 +125,21 @@ export async function saveMovieAction(
     const duration = field(formData, "duration") || "—";
     const rating = field(formData, "rating") || "0";
     const creator = field(formData, "creator");
-    const source = field(formData, "source");
-    const sourceUrl = safeUrl(field(formData, "sourceUrl"), "Source link");
-    const playback = field(formData, "playback") === "embed" ? "embed" : "link";
-    const embedUrl = playback === "embed" ? safeEmbedUrl(field(formData, "embedUrl")) : null;
-    if (playback === "embed" && !embedUrl) throw new Error("Shyira embed link ya vsembed");
+    const isSeason = formData.has("isSeason");
+    const source = isSeason ? "" : field(formData, "source");
+    const sourceUrl = isSeason ? "" : safeUrl(field(formData, "sourceUrl"), "Source link");
+    const playback =
+      isSeason || field(formData, "playback") !== "embed" ? "link" : "embed";
+    const embedUrl =
+      isSeason || playback !== "embed"
+        ? null
+        : safeEmbedUrl(field(formData, "embedUrl") || sourceUrl);
+    if (!isSeason && playback === "embed" && !embedUrl) {
+      throw new Error("Shyira embed link ya vsembed");
+    }
+    const episodes = isSeason ? episodesFromForm(formData) : [];
 
-    let slug = field(formData, "slug") || slugify(title);
+    let slug = normalizeSlug(field(formData, "slug") || title);
     if (!slug) throw new Error("Slug ntiboneka");
 
     const collection = await getMoviesCollection();
@@ -143,6 +175,8 @@ export async function saveMovieAction(
       sourceUrl,
       playback,
       embedUrl,
+      isSeason,
+      episodes,
       featured: formData.has("featured"),
       published: formData.has("published"),
       linkStatus: "unknown",
@@ -198,7 +232,15 @@ export async function checkLinkAction(formData: FormData) {
   const collection = await getMoviesCollection();
   const movie = await collection.findOne({ _id: new ObjectId(id) });
   if (!movie) return;
-  const target = movie.playback === "embed" ? movie.embedUrl : movie.sourceUrl;
+  const episodes = Array.isArray(movie.episodes) ? movie.episodes : [];
+  const firstEpisode = episodes[0] as Record<string, unknown> | undefined;
+  const target = movie.isSeason
+    ? firstEpisode?.playback === "embed"
+      ? firstEpisode?.embedUrl
+      : firstEpisode?.sourceUrl
+    : movie.playback === "embed"
+      ? movie.embedUrl
+      : movie.sourceUrl;
   let status: "ok" | "broken" = "broken";
   if (target) {
     try {
@@ -243,7 +285,7 @@ export async function saveGenreAction(
   const color = field(formData, "color") || "#f7b733";
   const order = Number(field(formData, "order")) || 0;
   const collection = await getGenresCollection();
-  const document = { name, slug: slugify(name), color, order };
+  const document = { name, slug: normalizeSlug(name), color, order };
   if (id && ObjectId.isValid(id)) {
     await collection.updateOne({ _id: new ObjectId(id) }, { $set: document });
   } else {

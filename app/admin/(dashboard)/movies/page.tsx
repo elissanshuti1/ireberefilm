@@ -103,6 +103,11 @@ export default async function AdminMoviesPage({ searchParams }: PageProps<"/admi
                       <p className="text-xs text-white/35">
                         {movie.originalTitle} · {movie.year}
                       </p>
+                      {movie.isSeason && (
+                        <p className="mt-1 text-[10px] font-bold text-gold">
+                          Season · {movie.episodes.length} ibice
+                        </p>
+                      )}
                     </div>
                   </div>
                 </td>

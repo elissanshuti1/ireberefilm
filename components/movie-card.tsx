@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Star } from "lucide-react";
+import { Layers, Play, Star } from "lucide-react";
 import Reveal from "@/components/reveal";
 import type { MovieView } from "@/lib/types";
 
@@ -37,6 +37,12 @@ export default function MovieCard({
           <span className="absolute top-3 right-3 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-semibold text-white/80 backdrop-blur-md">
             {movie.year}
           </span>
+          {movie.isSeason && (
+            <span className="absolute top-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-gold/40 bg-gold/15 px-2.5 py-1.5 text-[10px] font-bold text-gold backdrop-blur-md">
+              <Layers className="size-3" />
+              Season · {movie.episodes.length} {movie.episodes.length === 1 ? "gice" : "ibice"}
+            </span>
+          )}
 
           {rank && (
             <span className="font-display absolute -bottom-4 left-2 text-[110px] leading-none font-extrabold text-white/10 transition-colors duration-500 group-hover:text-gold/20">

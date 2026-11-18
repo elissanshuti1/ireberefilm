@@ -8,6 +8,15 @@ export type MovieView = PublicMovie & {
   kicker: string;
 };
 
+export type EpisodeRecord = {
+  id: string;
+  number: number;
+  title: string;
+  playback: "embed" | "link";
+  embedUrl: string | null;
+  sourceUrl: string;
+};
+
 export type MovieRecord = {
   id: string;
   slug: string;
@@ -25,6 +34,8 @@ export type MovieRecord = {
   sourceUrl: string;
   playback: "embed" | "link";
   embedUrl: string | null;
+  isSeason: boolean;
+  episodes: EpisodeRecord[];
   featured: boolean;
   published: boolean;
   linkStatus: "ok" | "broken" | "unknown";

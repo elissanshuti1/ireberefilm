@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${settings.siteName}`,
     },
     description: settings.tagline,
-    keywords: ["agasobanuye", "filime", "kinyarwanda", "ireberefilm", "oshakurfilms"],
+    keywords: ["agasobanuye", "filime", "kinyarwanda", "ireberefilm", "cinema"],
     openGraph: {
       title: `${settings.siteName} — Agasobanuye mu Kinyarwanda`,
       description: settings.tagline,
