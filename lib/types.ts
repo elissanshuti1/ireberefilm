@@ -57,6 +57,16 @@ export type CommentRecord = {
   createdAt: string;
 };
 
+export type MovieSearchResult = {
+  slug: string;
+  title: string;
+  originalTitle: string;
+  creator: string;
+  genre: string;
+  year: number;
+  image: string;
+};
+
 export type AnalyticsEventRecord = {
   id: string;
   visitorId: string;

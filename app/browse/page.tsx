@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import BrowseSearch from "@/components/browse-search";
 import GenreFilter from "@/components/genre-filter";
 import MovieCard from "@/components/movie-card";
 import Reveal from "@/components/reveal";
@@ -47,24 +48,11 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
         </Reveal>
 
         <Reveal delay={0.1} className="mt-10">
-          <form action="/browse" method="get" className="glass group flex items-center gap-4 rounded-2xl p-2 pl-5 transition-all focus-within:border-gold/50">
-            {genre !== "Zose" && <input type="hidden" name="genre" value={genre} />}
-            <Search className="size-5 shrink-0 text-gold" />
-            <input
-              type="search"
-              name="q"
-              defaultValue={query}
-              placeholder={settings.searchPlaceholder}
-              aria-label="Shakisha filime"
-              className="w-full bg-transparent py-4 text-base text-white outline-none placeholder:text-white/30"
-            />
-            <button
-              type="submit"
-              className="shrink-0 rounded-xl bg-gold px-6 py-3.5 text-sm font-extrabold text-ink transition-transform hover:scale-105"
-            >
-              Shakisha
-            </button>
-          </form>
+          <BrowseSearch
+            initialQuery={query}
+            genre={genre}
+            placeholder={settings.searchPlaceholder ?? "Shakisha filime, izina, cyangwa umusobanuzi..."}
+          />
         </Reveal>
       </section>
 

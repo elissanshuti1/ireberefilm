@@ -1,10 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Menu, Play, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import type { MovieSearchResult } from "@/lib/types";
 
 const links = [
   { href: "/", label: "Iburanga" },
@@ -24,6 +26,9 @@ export default function SiteHeader({
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [results, setResults] = useState<MovieSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [activeResult, setActiveResult] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -42,18 +47,88 @@ export default function SiteHeader({
       if (event.key === "Escape") {
         setMenuOpen(false);
         setSearchOpen(false);
+        setQuery("");
+        setResults([]);
+        setActiveResult(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!searchOpen || !trimmed) return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, {
+          signal: controller.signal,
+        });
+        const data = (await response.json()) as { results?: MovieSearchResult[] };
+        if (controller.signal.aborted) return;
+        setResults(data.results ?? []);
+        setActiveResult(null);
+      } catch {
+        if (!controller.signal.aborted) setResults([]);
+      } finally {
+        if (!controller.signal.aborted) setSearching(false);
+      }
+    }, 120);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, searchOpen]);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+    setResults([]);
+    setSearching(false);
+    setActiveResult(null);
+  };
+
+  const changeQuery = (value: string) => {
+    setQuery(value);
+    setActiveResult(null);
+    if (value.trim()) {
+      setSearching(true);
+    } else {
+      setResults([]);
+      setSearching(false);
+    }
+  };
+
+  const openResult = (result: MovieSearchResult) => {
+    router.push(`/movies/${encodeURIComponent(result.slug)}`);
+    closeSearch();
+  };
+
   const submitSearch = (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = query.trim();
     router.push(trimmed ? `/browse?q=${encodeURIComponent(trimmed)}` : "/browse");
-    setSearchOpen(false);
-    setQuery("");
+    closeSearch();
+  };
+
+  const onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "ArrowDown" && results.length > 0) {
+      event.preventDefault();
+      setActiveResult((current) =>
+        current === null ? 0 : Math.min(current + 1, results.length - 1),
+      );
+    } else if (event.key === "ArrowUp" && results.length > 0) {
+      event.preventDefault();
+      setActiveResult((current) =>
+        current === null ? results.length - 1 : Math.max(current - 1, 0),
+      );
+    } else if (event.key === "Enter" && activeResult !== null && results[activeResult]) {
+      event.preventDefault();
+      openResult(results[activeResult]);
+    }
   };
 
   return (
@@ -184,7 +259,7 @@ export default function SiteHeader({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] flex items-start justify-center bg-ink/90 px-5 pt-[18vh] backdrop-blur-2xl"
-            onClick={() => setSearchOpen(false)}
+            onClick={closeSearch}
           >
             <motion.form
               initial={{ opacity: 0, y: -30, scale: 0.97 }}
@@ -200,22 +275,68 @@ export default function SiteHeader({
                 <input
                   ref={inputRef}
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => changeQuery(event.target.value)}
+                  onKeyDown={onSearchKeyDown}
                   placeholder={searchPlaceholder}
                   className="w-full bg-transparent py-5 text-lg text-white outline-none placeholder:text-white/35"
                   aria-label="Shakisha filime"
+                  autoComplete="off"
                 />
                 <button
                   type="button"
-                  onClick={() => setSearchOpen(false)}
+                  onClick={closeSearch}
                   className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 text-white/60 hover:text-white"
                   aria-label="Funga gushakisha"
                 >
                   <X className="size-4" />
                 </button>
               </div>
+
+              {query.trim() && (
+                <div className="mt-2 max-h-[360px] overflow-y-auto border-t border-white/10">
+                  {searching && results.length === 0 ? (
+                    <p className="px-5 py-5 text-sm text-white/40">Gushakisha...</p>
+                  ) : results.length === 0 ? (
+                    <p className="px-5 py-5 text-sm text-white/40">Nta filime yaboneka.</p>
+                  ) : (
+                    <div className="space-y-1 p-2">
+                      {results.map((result, index) => (
+                        <button
+                          key={result.slug}
+                          type="button"
+                          onMouseEnter={() => setActiveResult(index)}
+                          onClick={() => openResult(result)}
+                          className={`flex w-full items-center gap-4 rounded-2xl px-3 py-2.5 text-left transition-colors ${
+                            activeResult === index ? "bg-white/10" : "hover:bg-white/5"
+                          }`}
+                        >
+                          <Image
+                            src={result.image}
+                            alt=""
+                            width={40}
+                            height={60}
+                            unoptimized
+                            className="size-10 shrink-0 rounded-md object-cover"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-bold text-white">
+                              {result.title}
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs text-white/40">
+                              {result.genre} · {result.year}
+                              {result.creator ? ` · ${result.creator}` : ""}
+                            </span>
+                          </span>
+                          <ArrowUpRight className="size-4 shrink-0 text-gold" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center justify-between border-t border-white/10 px-5 pt-3 pb-1 text-xs text-white/35">
-                <span>Kanda Enter kugira ushakishe</span>
+                <span>Kanda Enter kugira ushakishe byose</span>
                 <span className="text-gold">ESC kufunga</span>
               </div>
             </motion.form>
