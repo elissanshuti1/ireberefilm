@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight, ArrowUpRight, Play, Sparkles, Star } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Play, Sparkles } from "lucide-react";
 import HeroCarousel from "@/components/hero-carousel";
 import JsonLd from "@/components/json-ld";
 import Marquee from "@/components/marquee";
@@ -15,6 +14,7 @@ import {
   getGenres,
   getNewMovies,
   getPopularMovies,
+  getPublicMovies,
   getSettings,
 } from "@/lib/data";
 import { absoluteUrl } from "@/lib/site";
@@ -30,14 +30,16 @@ export const metadata: Metadata = {
 const palette = ["#f7b733", "#f59e0b", "#0ea5e9", "#db2777", "#7c3aed", "#059669"];
 
 export default async function Home() {
-  const [featured, newMovies, popular, genres, settings, allMovies] = await Promise.all([
-    getFeaturedMovies(),
-    getNewMovies(8),
-    getPopularMovies(6),
-    getGenres(),
-    getSettings(),
-    getAllMovies(),
-  ]);
+  const [featured, newMovies, popular, genres, settings, allMovies, publicMovies] =
+    await Promise.all([
+      getFeaturedMovies(),
+      getNewMovies(8),
+      getPopularMovies(6),
+      getGenres(),
+      getSettings(),
+      getAllMovies(),
+      getPublicMovies(),
+    ]);
 
   const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
   const heroMovies = toMovieViews(featured.length ? featured : newMovies.slice(0, 6), colors).map(
@@ -61,7 +63,10 @@ export default async function Home() {
   );
   const newViews = toMovieViews(newMovies, colors);
   const popularViews = toMovieViews(popular, colors);
-  const spot = heroMovies[0];
+  const seasonViews = toMovieViews(
+    publicMovies.filter((movie) => movie.isSeason),
+    colors,
+  );
   const categoryTiles = genres.slice(0, 6).map((genre, index) => ({
     label: genre.name,
     count: String(allMovies.filter((movie) => movie.genre === genre.name).length).padStart(2, "0"),
@@ -108,80 +113,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {spot && (
-        <section className="relative overflow-hidden border-y border-white/[0.06] bg-ink-2/70 py-24 sm:py-32">
-          <div className="aurora aurora-fade pointer-events-none absolute inset-0" />
-          <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-2">
-            <Reveal className="relative mx-auto w-full max-w-md">
-              <div className="relative aspect-[3/4]">
-                <div className="absolute inset-6 rounded-full border border-dashed border-gold/25 spin-slow" />
-                <div className="absolute inset-2 rounded-[32px] bg-gradient-to-br from-gold/20 to-violet/20 blur-2xl" />
-                <div className="shine absolute inset-0 overflow-hidden rounded-[28px] border border-white/20 shadow-2xl">
-                  <Image
-                    src={spot.poster}
-                    alt={spot.title}
-                    width={600}
-                    height={900}
-                    unoptimized
-                    className="size-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
-                </div>
-                <div className="glass float-slow absolute -right-4 bottom-10 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl">
-                  <span className="grid size-10 place-items-center rounded-xl bg-gold/15 text-gold">
-                    <Star className="size-4 fill-gold" />
-                  </span>
-                  <div>
-                    <p className="text-[10px] tracking-widest text-white/40 uppercase">Urutonde</p>
-                    <p className="font-display text-base font-bold">{spot.rating} / 10</p>
-                  </div>
-                </div>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.12}>
-              <div className="flex items-center gap-3">
-                <Sparkles className="size-4 text-gold" />
-                <p className="text-[11px] font-bold tracking-[0.24em] text-gold uppercase">Umusobanuzi w&apos;icyumweru</p>
-              </div>
-              <h2 className="font-display mt-6 text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
-                Ijwi rimwe,
-                <br />
-                <span className="text-gradient">inkuru nyinshi.</span>
-              </h2>
-              <p className="mt-7 max-w-xl text-base leading-8 text-white/55">
-                Agasobanuye si uguhindura amagambo gusa. Ni ukuzana inkuru hafi y&apos;umutima
-                w&apos;umunyarwanda, ukoresheje ijwi, urwenya n&apos;ubwenge byacu.
-              </p>
-              <div className="mt-9 grid gap-3 sm:grid-cols-2">
-                {[
-                  { label: "Filime", value: spot.title },
-                  { label: "Agasobanuye na", value: spot.creator.replace("Agasobanuye na ", "") },
-                  { label: "Ibyiciro", value: spot.genre },
-                  { label: "Uburebure", value: spot.duration },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="glass-soft rounded-2xl px-5 py-4 transition-colors hover:border-gold/40"
-                  >
-                    <p className="text-[10px] font-bold tracking-[0.18em] text-white/35 uppercase">{item.label}</p>
-                    <p className="font-display mt-1.5 truncate text-sm font-bold text-white">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-              <Link
-                href={`/movies/${spot.slug}`}
-                className="group mt-9 inline-flex items-center gap-3 rounded-full border border-white/15 px-6 py-3.5 text-sm font-bold transition-all hover:border-gold/60 hover:bg-gold/10"
-              >
-                <Play className="size-4 fill-gold text-gold" />
-                Reba {spot.title}
-                <ArrowUpRight className="size-4 text-gold transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-              </Link>
-            </Reveal>
-          </div>
-        </section>
-      )}
-
       <section id="zikunzwe" className="py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <SectionHeading
@@ -196,6 +127,29 @@ export default async function Home() {
               <MovieCard key={movie.slug} movie={movie} index={index} rank={index + 1} />
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="season" className="relative overflow-hidden border-t border-white/[0.06] bg-ink-2/40 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHeading
+            eyebrow="Ibice bikurikiranye"
+            title="Season"
+            description="Season zose z'Agasobanuye, ibice byazo byose biri hano."
+            href="/browse"
+            linkLabel="Zose reba"
+          />
+          {seasonViews.length === 0 ? (
+            <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-10 text-center text-sm text-white/40">
+              Nta season iboneka ubu.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-6">
+              {seasonViews.map((movie, index) => (
+                <MovieCard key={movie.slug} movie={movie} index={index} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

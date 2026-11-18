@@ -32,8 +32,18 @@ function toPublic(movie: MovieRecord): PublicMovie {
 
 export async function getAllMovies(): Promise<MovieRecord[]> {
   const collection = await getMoviesCollection();
-  const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
-  return docs.map((doc) => serializeMovie(doc as Record<string, unknown>));
+  const docs = await collection.find({}).toArray();
+  return docs
+    .map((doc) => serializeMovie(doc as Record<string, unknown>))
+    .sort((a, b) => {
+      if (a.homeOrder !== null && b.homeOrder !== null) {
+        const orderDiff = a.homeOrder - b.homeOrder;
+        if (orderDiff !== 0) return orderDiff;
+      }
+      if (a.homeOrder !== null && b.homeOrder === null) return -1;
+      if (a.homeOrder === null && b.homeOrder !== null) return 1;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
 }
 
 export async function getPublicMovies(): Promise<PublicMovie[]> {

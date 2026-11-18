@@ -21,6 +21,13 @@ function field(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
+function optionalNumber(formData: FormData, name: string) {
+  const raw = field(formData, name);
+  if (!raw) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.trunc(value) : null;
+}
+
 function safeUrl(value: string, label: string) {
   const trimmed = value.trim();
   if (!trimmed) return "";
@@ -191,6 +198,7 @@ export async function saveMovieAction(
       linkStatus: "unknown",
       lastCheckedAt: null,
       brokenReports: 0,
+      homeOrder: optionalNumber(formData, "homeOrder"),
       updatedAt: now,
     };
 
@@ -232,6 +240,28 @@ export async function toggleMovieAction(formData: FormData) {
     { $set: { [key]: !movie[key], updatedAt: new Date().toISOString() } },
   );
   revalidatePublic(String(movie.slug));
+}
+
+export async function moveMovieToFrontAction(formData: FormData) {
+  await requireAdmin();
+  const id = field(formData, "id");
+  if (!ObjectId.isValid(id)) return;
+  const collection = await getMoviesCollection();
+  const movie = await collection.findOne({ _id: new ObjectId(id) });
+  if (!movie) return;
+
+  const docs = await collection.find({}, { projection: { homeOrder: 1 } }).toArray();
+  const orders = docs
+    .map((doc) => doc.homeOrder)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const nextOrder = orders.length ? Math.min(...orders) - 1 : 0;
+
+  await collection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { homeOrder: nextOrder, updatedAt: new Date().toISOString() } },
+  );
+  revalidatePublic(String(movie.slug));
+  revalidatePath("/admin/movies");
 }
 
 export async function checkLinkAction(formData: FormData) {

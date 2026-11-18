@@ -359,6 +359,19 @@ export default function MovieForm({ movie, genres, comments = [], adminName = "A
             <input name="featured" type="checkbox" defaultChecked={movie?.featured ?? false} className="size-4 accent-[#f7b733]" />
             Shyira mu zigaragazwa (featured)
           </label>
+          <label className="w-full sm:w-64">
+            <Label>Urutonde muri Filime nshya</Label>
+            <input
+              name="homeOrder"
+              type="number"
+              defaultValue={movie?.homeOrder ?? ""}
+              className={inputClass}
+              placeholder="Automatic"
+            />
+            <span className="mt-1.5 block text-[11px] text-white/35">
+              1 ni iya mbere. Usigaye ubusa, iya nyuma yashyizwe iza imbere.
+            </span>
+          </label>
         </div>
       </section>
 

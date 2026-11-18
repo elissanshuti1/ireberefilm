@@ -42,6 +42,7 @@ export type MovieRecord = {
   linkStatus: "ok" | "broken" | "unknown";
   lastCheckedAt: string | null;
   brokenReports: number;
+  homeOrder: number | null;
   createdAt: string;
   updatedAt: string;
 };

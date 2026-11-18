@@ -139,6 +139,10 @@ export function serializeMovie(doc: Record<string, unknown>): MovieRecord {
       doc.linkStatus === "ok" || doc.linkStatus === "broken" ? doc.linkStatus : "unknown",
     lastCheckedAt: doc.lastCheckedAt ? String(doc.lastCheckedAt) : null,
     brokenReports: Number(doc.brokenReports ?? 0),
+    homeOrder:
+      typeof doc.homeOrder === "number" && Number.isFinite(doc.homeOrder)
+        ? Math.trunc(doc.homeOrder)
+        : null,
     createdAt: String(doc.createdAt ?? new Date().toISOString()),
     updatedAt: String(doc.updatedAt ?? new Date().toISOString()),
   };

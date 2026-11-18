@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Check,
+  ChevronsUp,
   CircleSlash,
   ExternalLink,
   Eye,
@@ -11,7 +12,12 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { checkLinkAction, deleteMovieAction, toggleMovieAction } from "@/lib/actions";
+import {
+  checkLinkAction,
+  deleteMovieAction,
+  moveMovieToFrontAction,
+  toggleMovieAction,
+} from "@/lib/actions";
 import { getAllMovies, getGenres } from "@/lib/data";
 import { posterSrc } from "@/lib/poster";
 import ConfirmSubmit from "@/components/admin/confirm-submit";
@@ -108,6 +114,11 @@ export default async function AdminMoviesPage({ searchParams }: PageProps<"/admi
                           {movie.isSeason ? "Season" : "Ibice"} · {movie.episodes.length} ibice
                         </p>
                       )}
+                      {movie.homeOrder !== null && (
+                        <p className="mt-1 text-[10px] font-bold text-sky-300">
+                          Urutonde · {movie.homeOrder}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -153,6 +164,16 @@ export default async function AdminMoviesPage({ searchParams }: PageProps<"/admi
                 </td>
                 <td className="px-5 py-4">
                   <div className="flex items-center justify-end gap-1">
+                    <form action={moveMovieToFrontAction}>
+                      <input type="hidden" name="id" value={movie.id} />
+                      <button
+                        type="submit"
+                        title="Shyira imbere muri Filime nshya"
+                        className="grid size-8 place-items-center rounded-lg text-white/40 hover:text-sky-300"
+                      >
+                        <ChevronsUp className="size-4" />
+                      </button>
+                    </form>
                     <Link
                       href={`/movies/${movie.slug}`}
                       title="Reba"
