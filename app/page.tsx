@@ -1,69 +1,240 @@
+import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight, ArrowUpRight, Play, Sparkles, Star } from "lucide-react";
+import HeroCarousel from "@/components/hero-carousel";
+import Marquee from "@/components/marquee";
+import MovieCard from "@/components/movie-card";
+import Reveal from "@/components/reveal";
+import SectionHeading from "@/components/section-heading";
+import Stats from "@/components/stats";
+import {
+  getAllMovies,
+  getFeaturedMovies,
+  getGenres,
+  getNewMovies,
+  getPopularMovies,
+  getSettings,
+} from "@/lib/data";
+import { toMovieViews } from "@/lib/view";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+const palette = ["#f7b733", "#f59e0b", "#0ea5e9", "#db2777", "#7c3aed", "#059669"];
+
+export default async function Home() {
+  const [featured, newMovies, popular, genres, settings, allMovies] = await Promise.all([
+    getFeaturedMovies(),
+    getNewMovies(8),
+    getPopularMovies(6),
+    getGenres(),
+    getSettings(),
+    getAllMovies(),
+  ]);
+
+  const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
+  const heroMovies = toMovieViews(featured.length ? featured : newMovies.slice(0, 6), colors);
+  const newViews = toMovieViews(newMovies, colors);
+  const popularViews = toMovieViews(popular, colors);
+  const spot = heroMovies[0];
+  const categoryTiles = genres.slice(0, 6).map((genre, index) => ({
+    label: genre.name,
+    count: String(allMovies.filter((movie) => movie.genre === genre.name).length).padStart(2, "0"),
+    from: genre.color || palette[index % palette.length],
+    to: palette[(index + 2) % palette.length],
+  }));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main>
+      <HeroCarousel movies={heroMovies} ctaLabel={settings.heroCta} secondaryLabel={settings.heroSecondary} />
+      <Marquee />
+      <Stats moviesCount={allMovies.length} genresCount={genres.length} />
+
+      <section id="filime-nshya" className="relative overflow-hidden py-24 sm:py-32">
+        <div className="pointer-events-none absolute top-10 left-1/4 size-80 rounded-full bg-violet/10 orb" />
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHeading
+            eyebrow="Zikiri gushya"
+            title={settings.newTitle}
+            description="Zimwe zikimara kuza, zindi ziraza vuba. Zose ziri mu Kinyarwanda."
+            href="/browse"
+            linkLabel="Zose reba"
+          />
+          <div className="mask-fade-x -mx-5 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-8 sm:mx-0 sm:px-0">
+            {newViews.map((movie, index) => (
+              <div key={movie.slug} className="w-[58vw] shrink-0 snap-start sm:w-[38vw] lg:w-[23%]">
+                <MovieCard movie={movie} index={index} />
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {spot && (
+        <section className="relative overflow-hidden border-y border-white/[0.06] bg-ink-2/70 py-24 sm:py-32">
+          <div className="aurora aurora-fade pointer-events-none absolute inset-0" />
+          <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-2">
+            <Reveal className="relative mx-auto w-full max-w-md">
+              <div className="relative aspect-[3/4]">
+                <div className="absolute inset-6 rounded-full border border-dashed border-gold/25 spin-slow" />
+                <div className="absolute inset-2 rounded-[32px] bg-gradient-to-br from-gold/20 to-violet/20 blur-2xl" />
+                <div className="shine absolute inset-0 overflow-hidden rounded-[28px] border border-white/20 shadow-2xl">
+                  <Image
+                    src={spot.poster}
+                    alt={spot.title}
+                    width={600}
+                    height={900}
+                    unoptimized
+                    className="size-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
+                </div>
+                <div className="glass float-slow absolute -right-4 bottom-10 flex items-center gap-3 rounded-2xl px-4 py-3 shadow-xl">
+                  <span className="grid size-10 place-items-center rounded-xl bg-gold/15 text-gold">
+                    <Star className="size-4 fill-gold" />
+                  </span>
+                  <div>
+                    <p className="text-[10px] tracking-widest text-white/40 uppercase">Urutonde</p>
+                    <p className="font-display text-base font-bold">{spot.rating} / 10</p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+
+            <Reveal delay={0.12}>
+              <div className="flex items-center gap-3">
+                <Sparkles className="size-4 text-gold" />
+                <p className="text-[11px] font-bold tracking-[0.24em] text-gold uppercase">Umusobanuzi w&apos;icyumweru</p>
+              </div>
+              <h2 className="font-display mt-6 text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+                Ijwi rimwe,
+                <br />
+                <span className="text-gradient">inkuru nyinshi.</span>
+              </h2>
+              <p className="mt-7 max-w-xl text-base leading-8 text-white/55">
+                Agasobanuye si uguhindura amagambo gusa. Ni ukuzana inkuru hafi y&apos;umutima
+                w&apos;umunyarwanda, ukoresheje ijwi, urwenya n&apos;ubwenge byacu.
+              </p>
+              <div className="mt-9 grid gap-3 sm:grid-cols-2">
+                {[
+                  { label: "Filime", value: spot.title },
+                  { label: "Agasobanuye na", value: spot.creator.replace("Agasobanuye na ", "") },
+                  { label: "Ibyiciro", value: spot.genre },
+                  { label: "Uburebure", value: spot.duration },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="glass-soft rounded-2xl px-5 py-4 transition-colors hover:border-gold/40"
+                  >
+                    <p className="text-[10px] font-bold tracking-[0.18em] text-white/35 uppercase">{item.label}</p>
+                    <p className="font-display mt-1.5 truncate text-sm font-bold text-white">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+              <Link
+                href={`/movies/${spot.slug}`}
+                className="group mt-9 inline-flex items-center gap-3 rounded-full border border-white/15 px-6 py-3.5 text-sm font-bold transition-all hover:border-gold/60 hover:bg-gold/10"
+              >
+                <Play className="size-4 fill-gold text-gold" />
+                Reba {spot.title}
+                <ArrowUpRight className="size-4 text-gold transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+              </Link>
+            </Reveal>
+          </div>
+        </section>
+      )}
+
+      <section id="zikunzwe" className="py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHeading
+            eyebrow="Zatoranyijwe"
+            title={settings.popularTitle}
+            description="Filime zirebwa cyane, kandi zikaba zikiri nziza nyuma yo kureba kenshi."
+            href="/browse"
+            linkLabel="Reba zose"
+          />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-6">
+            {popularViews.map((movie, index) => (
+              <MovieCard key={movie.slug} movie={movie} index={index} rank={index + 1} />
+            ))}
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      <section id="ibyiciro" className="relative overflow-hidden border-t border-white/[0.06] bg-ink-2/60 py-24 sm:py-32">
+        <div className="grid-lines pointer-events-none absolute inset-0 opacity-70" />
+        <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
+          <SectionHeading
+            eyebrow="Hitamo ubwo ukunda"
+            title={settings.categoriesTitle}
+            description="Kuva ku byishimo kugeza ku bwoba, buri munsi ufite filime yayo."
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {categoryTiles.map((tile, index) => (
+              <Reveal key={tile.label} delay={index * 0.06}>
+                <Link
+                  href={`/browse?genre=${encodeURIComponent(tile.label)}`}
+                  className="group relative block h-40 overflow-hidden rounded-3xl border border-white/10 p-6 transition-all duration-500 hover:-translate-y-2 hover:border-white/25"
+                  style={{
+                    background: `linear-gradient(135deg, ${tile.from}2b, ${tile.to}18), #0b0d16`,
+                  }}
+                >
+                  <div
+                    className="absolute -right-10 -bottom-16 size-52 rounded-full opacity-40 blur-3xl transition-all duration-700 group-hover:scale-125"
+                    style={{ background: tile.from }}
+                  />
+                  <div className="relative flex h-full flex-col justify-between">
+                    <div className="flex items-start justify-between">
+                      <span
+                        className="grid size-11 place-items-center rounded-2xl border border-white/20 bg-white/5 text-white transition-all duration-500 group-hover:rotate-6 group-hover:scale-110"
+                        style={{ color: tile.from }}
+                      >
+                        <Play className="size-4 fill-current" />
+                      </span>
+                      <span className="font-display text-3xl font-extrabold text-white/10">{tile.count}</span>
+                    </div>
+                    <div className="flex items-end justify-between">
+                      <h3 className="font-display text-2xl font-extrabold text-white">{tile.label}</h3>
+                      <ArrowRight className="size-5 text-white/40 transition-all duration-500 group-hover:translate-x-2 group-hover:text-gold" />
+                    </div>
+                  </div>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden py-24 sm:py-32">
+        <div className="pointer-events-none absolute inset-0 grid-lines" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 size-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/10 orb" />
+        <div className="relative mx-auto max-w-3xl px-5 text-center sm:px-8">
+          <Reveal>
+            <span className="glass-soft mx-auto grid size-16 place-items-center rounded-2xl text-gold">
+              <Sparkles className="size-7" />
+            </span>
+            <h2 className="font-display mt-8 text-4xl leading-[1.08] font-extrabold tracking-tight sm:text-6xl">
+              Agasobanuye kose,
+              <br />
+              <span className="text-gradient">ahantu hamwe.</span>
+            </h2>
+            <p className="mx-auto mt-6 max-w-xl text-base leading-8 text-white/50">
+              Ireberefilm ikusanya filime z&apos;Abanyamerika, Abahinde n&apos;izindi za cinema
+              y&apos;isi, zose zisobanurwa mu Kinyarwanda, hamwe n&apos;izina ry&apos;umusobanuzi
+              n&apos;inkomoko yazo.
+            </p>
+            <Link
+              href="/browse"
+              className="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-4 text-sm font-extrabold text-ink transition-all duration-300 hover:gap-5 hover:bg-gold"
+            >
+              Tangira ureba
+              <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+            </Link>
+            <p className="mt-5 text-xs text-white/30">
+              {allMovies.length} filime · Zose mu Kinyarwanda · Zishyirwa hansi y&apos;ubuyobozi
+            </p>
+          </Reveal>
+        </div>
+      </section>
+    </main>
   );
 }
