@@ -55,7 +55,7 @@ export default function AdminCommentsPanel({ slug, movieId, adminName, comments 
             <span className="mb-2 block text-xs font-bold tracking-wider text-white/45 uppercase">
               Izina
             </span>
-            <input name="name" required maxLength={60} defaultValue={adminName} className={inputClass} />
+            <input name="name" required maxLength={60} defaultValue={adminName} placeholder="Urugero: Kelly" className={inputClass} />
           </label>
           <label>
             <span className="mb-2 block text-xs font-bold tracking-wider text-white/45 uppercase">

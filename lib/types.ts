@@ -56,6 +56,12 @@ export type CommentRecord = {
   createdAt: string;
 };
 
+export type GlobalComment = {
+  name: string;
+  message: string;
+  updatedAt: string;
+};
+
 export type GenreRecord = {
   id: string;
   name: string;

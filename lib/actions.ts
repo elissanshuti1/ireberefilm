@@ -453,3 +453,43 @@ export async function deleteCommentAction(formData: FormData) {
   await comments.deleteOne({ _id: new ObjectId(id), movieSlug: slug });
   revalidateMovie(slug, movieId);
 }
+
+export async function savePinnedCommentAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+  try {
+    const name = field(formData, "name").replace(/\s+/g, " ").slice(0, 60) || "Ireberefilm";
+    const message = field(formData, "message").trim().slice(0, 1200);
+    const settings = await getSettingsCollection();
+    await settings.updateOne(
+      { key: "pinnedComment" },
+      {
+        $set: {
+          key: "pinnedComment",
+          name,
+          message,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      { upsert: true },
+    );
+
+    const moviesCollection = await getMoviesCollection();
+    const movies = await moviesCollection
+      .find({ published: { $ne: false } }, { projection: { slug: 1 } })
+      .toArray();
+    for (const movie of movies) {
+      const slug = String(movie.slug ?? "");
+      if (slug) revalidatePath(`/movies/${slug}`);
+    }
+    revalidatePublic();
+    return {
+      ok: true,
+      message: message ? "Ubutumwa bwashyizwe kuri filime zose" : "Ubutumwa bwavanywe",
+    };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Habaye ikosa" };
+  }
+}

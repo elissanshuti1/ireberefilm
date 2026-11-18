@@ -6,9 +6,13 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, MessageSquare, Send } from "lucide-react";
 import { addCommentAction } from "@/lib/actions";
 import { emptyActionState } from "@/lib/action-state";
-import type { CommentRecord } from "@/lib/types";
+import type { CommentRecord, GlobalComment } from "@/lib/types";
 
-type Props = { slug: string; comments: CommentRecord[] };
+type Props = {
+  slug: string;
+  comments: CommentRecord[];
+  globalComment: GlobalComment | null;
+};
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition-colors placeholder:text-white/25 focus:border-gold/60";
@@ -20,7 +24,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export default function CommentSection({ slug, comments }: Props) {
+export default function CommentSection({ slug, comments, globalComment }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(addCommentAction, emptyActionState);
@@ -57,6 +61,27 @@ export default function CommentSection({ slug, comments }: Props) {
           <MessageSquare className="hidden size-10 text-gold/25 sm:block" />
         </div>
 
+        {globalComment && (
+          <article className="mt-8 rounded-2xl border border-gold/40 bg-gold/[0.07] p-5 sm:p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-display text-sm font-extrabold text-white">{globalComment.name}</p>
+              <span className="text-xs text-white/30">·</span>
+              <time className="text-xs text-white/35" dateTime={globalComment.updatedAt}>
+                {formatDate(globalComment.updatedAt)}
+              </time>
+              <span className="rounded-full border border-gold/25 bg-gold/10 px-2.5 py-1 text-[10px] font-bold text-gold uppercase">
+                Umuyobozi
+              </span>
+              <span className="rounded-full border border-mint/25 bg-mint/10 px-2.5 py-1 text-[10px] font-bold text-mint uppercase">
+                Iyashyizwe kuri filime zose
+              </span>
+            </div>
+            <p className="mt-3 text-sm leading-7 whitespace-pre-wrap text-white/80">
+              {globalComment.message}
+            </p>
+          </article>
+        )}
+
         <form ref={formRef} action={formAction} className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
           <input type="hidden" name="slug" value={slug} />
           <div className="hidden" aria-hidden="true">
@@ -67,7 +92,7 @@ export default function CommentSection({ slug, comments }: Props) {
               <span className="mb-2 block text-xs font-bold tracking-wider text-white/45 uppercase">
                 Izina ryawe
               </span>
-              <input name="name" required maxLength={60} placeholder="Urugero: Elissa" className={inputClass} />
+              <input name="name" required maxLength={60} placeholder="Urugero: Kelly" className={inputClass} />
             </label>
             <label>
               <span className="mb-2 block text-xs font-bold tracking-wider text-white/45 uppercase">

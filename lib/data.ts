@@ -11,7 +11,7 @@ import {
 import { posterSrc } from "@/lib/poster";
 import { decodeParam, normalizeSlug } from "@/lib/slug";
 import { defaultSettings } from "@/lib/settings";
-import type { CommentRecord, GenreRecord, MovieRecord, PublicMovie, SiteSettings } from "@/lib/types";
+import type { CommentRecord, GenreRecord, GlobalComment, MovieRecord, PublicMovie, SiteSettings } from "@/lib/types";
 
 function toPublic(movie: MovieRecord): PublicMovie {
   return { ...movie, image: posterSrc(movie) };
@@ -53,6 +53,32 @@ export async function getCommentsBySlug(slug: string, limit = 0): Promise<Commen
   const cursor = collection.find({ movieSlug: slug }).sort({ pinned: -1, createdAt: -1 });
   const docs = await (limit > 0 ? cursor.limit(limit) : cursor).toArray();
   return docs.map((doc) => serializeComment(doc as Record<string, unknown>));
+}
+
+export async function getAllComments(): Promise<CommentRecord[]> {
+  if (!process.env.MONGODB_URI) return [];
+  const collection = await getCommentsCollection();
+  const docs = await collection.find({}).sort({ createdAt: -1 }).toArray();
+  return docs.map((doc) => serializeComment(doc as Record<string, unknown>));
+}
+
+export async function getGlobalPinnedComment(): Promise<GlobalComment | null> {
+  if (!process.env.MONGODB_URI) return null;
+  try {
+    const collection = await getSettingsCollection();
+    const doc = await collection.findOne({ key: "pinnedComment" });
+    if (!doc) return null;
+    const data = doc as Record<string, unknown>;
+    const message = String(data.message ?? "").trim();
+    if (!message) return null;
+    return {
+      name: String(data.name ?? "Ireberefilm"),
+      message,
+      updatedAt: String(data.updatedAt ?? new Date().toISOString()),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function getFeaturedMovies(): Promise<PublicMovie[]> {

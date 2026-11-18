@@ -9,7 +9,13 @@ import MovieCard from "@/components/movie-card";
 import PlayerButton from "@/components/player-button";
 import Reveal from "@/components/reveal";
 import SectionHeading from "@/components/section-heading";
-import { getCommentsBySlug, getGenres, getMovieBySlug, getPublicMovies } from "@/lib/data";
+import {
+  getCommentsBySlug,
+  getGenres,
+  getGlobalPinnedComment,
+  getMovieBySlug,
+  getPublicMovies,
+} from "@/lib/data";
 import { absoluteUrl, getSiteUrl } from "@/lib/site";
 import { toMovieView, toMovieViews } from "@/lib/view";
 
@@ -59,10 +65,11 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
   const { slug } = await params;
   const movie = await getMovieBySlug(slug);
   if (!movie) notFound();
-  const [allMovies, genres, comments] = await Promise.all([
+  const [allMovies, genres, comments, globalComment] = await Promise.all([
     getPublicMovies(),
     getGenres(),
     getCommentsBySlug(movie.slug),
+    getGlobalPinnedComment(),
   ]);
 
   const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
@@ -319,7 +326,11 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
         </section>
       )}
 
-      <CommentSection slug={movie.slug} comments={comments} />
+      <CommentSection
+        slug={movie.slug}
+        comments={comments}
+        globalComment={globalComment}
+      />
 
       <section id="byinshi" className="relative border-y border-white/[0.06] bg-ink-2/60 py-20">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
