@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Ibyacu",
   description: "ireberefilm — urubuga rwagatifu rw'Agasobanuye mu Kinyarwanda.",
+  alternates: { canonical: "/about" },
+  openGraph: { url: "/about" },
 };
 
 const values = [

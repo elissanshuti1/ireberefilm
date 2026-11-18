@@ -46,6 +46,16 @@ export type MovieRecord = {
   updatedAt: string;
 };
 
+export type CommentRecord = {
+  id: string;
+  movieSlug: string;
+  name: string;
+  message: string;
+  pinned: boolean;
+  authorRole: "admin" | "viewer";
+  createdAt: string;
+};
+
 export type GenreRecord = {
   id: string;
   name: string;

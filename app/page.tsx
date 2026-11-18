@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ArrowUpRight, Play, Sparkles, Star } from "lucide-react";
 import HeroCarousel from "@/components/hero-carousel";
+import JsonLd from "@/components/json-ld";
 import Marquee from "@/components/marquee";
 import MovieCard from "@/components/movie-card";
 import Reveal from "@/components/reveal";
@@ -15,9 +17,15 @@ import {
   getPopularMovies,
   getSettings,
 } from "@/lib/data";
+import { absoluteUrl } from "@/lib/site";
 import { toMovieViews } from "@/lib/view";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  openGraph: { url: "/" },
+};
 
 const palette = ["#f7b733", "#f59e0b", "#0ea5e9", "#db2777", "#7c3aed", "#059669"];
 
@@ -60,9 +68,22 @@ export default async function Home() {
     from: genre.color || palette[index % palette.length],
     to: palette[(index + 2) % palette.length],
   }));
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: settings.newTitle,
+    itemListElement: heroMovies.map((movie, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: movie.title,
+      url: absoluteUrl(`/movies/${encodeURIComponent(movie.slug)}`),
+      image: absoluteUrl(movie.poster),
+    })),
+  };
 
   return (
     <main>
+      <JsonLd data={listSchema} />
       <HeroCarousel movies={heroMovies} ctaLabel={settings.heroCta} secondaryLabel={settings.heroSecondary} />
       <Marquee />
       <Stats moviesCount={allMovies.length} genresCount={genres.length} />

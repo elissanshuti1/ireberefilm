@@ -1,5 +1,5 @@
 import { MongoClient, ObjectId } from "mongodb";
-import type { EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
+import type { CommentRecord, EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
 
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB ?? "ireberefilm";
@@ -36,6 +36,13 @@ export async function getSettingsCollection() {
   return db.collection("settings");
 }
 
+export async function getCommentsCollection() {
+  const db = await getDb();
+  const collection = db.collection("comments");
+  await collection.createIndex({ movieSlug: 1, pinned: -1, createdAt: -1 });
+  return collection;
+}
+
 export async function getPostersBucket() {
   const db = await getDb();
   const { GridFSBucket } = await import("mongodb");
@@ -54,6 +61,18 @@ function serializeEpisode(doc: Record<string, unknown>, index: number): EpisodeR
     playback: doc.playback === "link" ? "link" : "embed",
     embedUrl: doc.embedUrl ? String(doc.embedUrl) : null,
     sourceUrl: String(doc.sourceUrl ?? ""),
+  };
+}
+
+export function serializeComment(doc: Record<string, unknown>): CommentRecord {
+  return {
+    id: toId(doc._id),
+    movieSlug: String(doc.movieSlug ?? ""),
+    name: String(doc.name ?? ""),
+    message: String(doc.message ?? ""),
+    pinned: Boolean(doc.pinned),
+    authorRole: doc.authorRole === "admin" ? "admin" : "viewer",
+    createdAt: String(doc.createdAt ?? new Date().toISOString()),
   };
 }
 

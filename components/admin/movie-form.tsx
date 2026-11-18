@@ -5,12 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ImagePlus, Layers, Plus, Save, Trash2 } from "lucide-react";
+import AdminCommentsPanel from "@/components/admin/admin-comments-panel";
 import { saveMovieAction } from "@/lib/actions";
 import { emptyActionState } from "@/lib/action-state";
 import { posterSrc } from "@/lib/poster";
-import type { EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
+import type { CommentRecord, EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
 
-type Props = { movie?: MovieRecord; genres: GenreRecord[] };
+type Props = {
+  movie?: MovieRecord;
+  genres: GenreRecord[];
+  comments?: CommentRecord[];
+  adminName?: string;
+};
 
 type MovieKind = "movie" | "parts" | "season";
 
@@ -58,7 +64,7 @@ function Label({ children, hint }: { children: React.ReactNode; hint?: string })
   );
 }
 
-export default function MovieForm({ movie, genres }: Props) {
+export default function MovieForm({ movie, genres, comments = [], adminName = "Admin" }: Props) {
   const [state, formAction, pending] = useActionState(saveMovieAction, emptyActionState);
   const [playback, setPlayback] = useState<"embed" | "link">(movie?.playback ?? "embed");
   const [preview, setPreview] = useState(movie ? posterSrc(movie) : null);
@@ -99,12 +105,13 @@ export default function MovieForm({ movie, genres }: Props) {
   };
 
   return (
-    <motion.form
-      action={formAction}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
+      <motion.form
+        action={formAction}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-6"
+      >
       {movie && <input type="hidden" name="id" value={movie.id} />}
       {isMultiPart && (
         <input type="hidden" name="episodeIds" value={episodes.map((episode) => episode.id).join(",")} />
@@ -376,6 +383,15 @@ export default function MovieForm({ movie, genres }: Props) {
                   : "Ongera filime"}
         </button>
       </div>
-    </motion.form>
+      </motion.form>
+      {movie && (
+        <AdminCommentsPanel
+          slug={movie.slug}
+          movieId={movie.id}
+          adminName={adminName}
+          comments={comments}
+        />
+      )}
+    </div>
   );
 }

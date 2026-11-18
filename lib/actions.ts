@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAdmin, verifyAdminPassword, adminCookieName, createSessionToken } from "@/lib/auth";
 import {
+  getCommentsCollection,
   getGenresCollection,
   getMoviesCollection,
   getSettingsCollection,
@@ -353,4 +354,102 @@ export async function cleanupOrphanPosterAction(id: string) {
   const collection = await getMoviesCollection();
   const used = await collection.findOne({ posterId: id });
   if (!used && ObjectId.isValid(id)) await bucket.delete(new ObjectId(id));
+}
+
+function cleanCommentInput(formData: FormData) {
+  const name = field(formData, "name").replace(/\s+/g, " ").slice(0, 60);
+  const message = field(formData, "message").trim().slice(0, 1200);
+  if (name.length < 2) throw new Error("Andika izina ryawe");
+  if (message.length < 2) throw new Error("Andika ubutumwa bwawe");
+  return { name, message };
+}
+
+function revalidateMovie(slug: string, movieId?: string) {
+  revalidatePath(`/movies/${slug}`);
+  revalidatePath("/admin/movies");
+  if (movieId) revalidatePath(`/admin/movies/${movieId}`);
+}
+
+export async function addCommentAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const slug = normalizeSlug(field(formData, "slug"));
+    if (!slug) throw new Error("Filime ntiboneka");
+    if (field(formData, "website")) return { ok: true, message: "Ubutumwa bwabikiwe" };
+
+    const { name, message } = cleanCommentInput(formData);
+    const movies = await getMoviesCollection();
+    const movie = await movies.findOne({ slug, published: { $ne: false } });
+    if (!movie) throw new Error("Filime ntiboneka");
+
+    const comments = await getCommentsCollection();
+    await comments.insertOne({
+      movieSlug: slug,
+      name,
+      message,
+      pinned: false,
+      authorRole: "viewer",
+      createdAt: new Date().toISOString(),
+    });
+    revalidateMovie(slug);
+    return { ok: true, message: "Ubutumwa bwabikiwe. Urakoze!" };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Habaye ikosa" };
+  }
+}
+
+export async function adminAddCommentAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+  try {
+    const slug = normalizeSlug(field(formData, "slug"));
+    const movieId = field(formData, "movieId");
+    if (!slug) throw new Error("Filime ntiboneka");
+
+    const { name, message } = cleanCommentInput(formData);
+    const comments = await getCommentsCollection();
+    await comments.insertOne({
+      movieSlug: slug,
+      name,
+      message,
+      pinned: formData.has("pinned"),
+      authorRole: "admin",
+      createdAt: new Date().toISOString(),
+    });
+    revalidateMovie(slug, movieId);
+    return { ok: true, message: "Ubutumwa bwabikiwe" };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "Habaye ikosa" };
+  }
+}
+
+export async function pinCommentAction(formData: FormData) {
+  await requireAdmin();
+  const id = field(formData, "commentId");
+  const slug = normalizeSlug(field(formData, "slug"));
+  const movieId = field(formData, "movieId");
+  if (!ObjectId.isValid(id) || !slug) return;
+
+  const comments = await getCommentsCollection();
+  await comments.updateOne(
+    { _id: new ObjectId(id), movieSlug: slug },
+    { $set: { pinned: field(formData, "pinned") === "1" } },
+  );
+  revalidateMovie(slug, movieId);
+}
+
+export async function deleteCommentAction(formData: FormData) {
+  await requireAdmin();
+  const id = field(formData, "commentId");
+  const slug = normalizeSlug(field(formData, "slug"));
+  const movieId = field(formData, "movieId");
+  if (!ObjectId.isValid(id) || !slug) return;
+
+  const comments = await getCommentsCollection();
+  await comments.deleteOne({ _id: new ObjectId(id), movieSlug: slug });
+  revalidateMovie(slug, movieId);
 }

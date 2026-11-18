@@ -3,11 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, Clock, ExternalLink, Film, Layers, Play, Sparkles, Star, UserRound } from "lucide-react";
+import CommentSection from "@/components/comment-section";
+import JsonLd from "@/components/json-ld";
 import MovieCard from "@/components/movie-card";
 import PlayerButton from "@/components/player-button";
 import Reveal from "@/components/reveal";
 import SectionHeading from "@/components/section-heading";
-import { getGenres, getMovieBySlug, getPublicMovies } from "@/lib/data";
+import { getCommentsBySlug, getGenres, getMovieBySlug, getPublicMovies } from "@/lib/data";
+import { absoluteUrl, getSiteUrl } from "@/lib/site";
 import { toMovieView, toMovieViews } from "@/lib/view";
 
 export const dynamic = "force-dynamic";
@@ -17,13 +20,32 @@ export async function generateMetadata({
 }: PageProps<"/movies/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const movie = await getMovieBySlug(slug);
-  if (!movie) return { title: "Filime ntiboneka" };
+  if (!movie) return { title: "Filime ntiboneka", robots: { index: false, follow: false } };
+
+  const canonical = `/movies/${encodeURIComponent(movie.slug)}`;
+  const description =
+    movie.synopsis ||
+    `${movie.title} — agasobanuye mu Kinyarwanda urebe ku ireberefilm.`;
+  const title = `${movie.title} — Agasobanuye mu Kinyarwanda`;
+
   return {
-    title: movie.title,
-    description: movie.synopsis,
+    title,
+    description,
+    alternates: { canonical },
+    robots: { index: true, follow: true },
     openGraph: {
-      title: `${movie.title} | ireberefilm`,
-      description: movie.synopsis,
+      title,
+      description,
+      type: "video.movie",
+      locale: "rw_RW",
+      siteName: "ireberefilm",
+      url: canonical,
+      images: [movie.image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
       images: [movie.image],
     },
   };
@@ -35,12 +57,13 @@ function partLetter(number: number) {
 
 export default async function MoviePage({ params }: PageProps<"/movies/[slug]">) {
   const { slug } = await params;
-  const [movie, allMovies, genres] = await Promise.all([
-    getMovieBySlug(slug),
+  const movie = await getMovieBySlug(slug);
+  if (!movie) notFound();
+  const [allMovies, genres, comments] = await Promise.all([
     getPublicMovies(),
     getGenres(),
+    getCommentsBySlug(movie.slug),
   ]);
-  if (!movie) notFound();
 
   const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
   const view = toMovieView(movie, colors[movie.genre]);
@@ -59,9 +82,37 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
     ...allMovies.filter((item) => item.slug !== movie.slug && item.genre !== movie.genre),
   ].slice(0, 5);
   const relatedViews = toMovieViews(related, colors);
+  const siteUrl = getSiteUrl();
+  const movieUrl = absoluteUrl(`/movies/${encodeURIComponent(movie.slug)}`);
+  const movieSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Movie",
+        name: movie.title,
+        alternateName: movie.originalTitle,
+        description: movie.synopsis,
+        url: movieUrl,
+        image: absoluteUrl(view.poster),
+        genre: movie.genre,
+        inLanguage: "rw",
+        ...(movie.year > 0 ? { datePublished: String(movie.year) } : {}),
+        ...(movie.duration && movie.duration !== "—" ? { duration: movie.duration } : {}),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Ireberefilm", item: siteUrl },
+          { "@type": "ListItem", position: 2, name: "Filime zose", item: absoluteUrl("/browse") },
+          { "@type": "ListItem", position: 3, name: movie.title, item: movieUrl },
+        ],
+      },
+    ],
+  };
 
   return (
     <main className="relative overflow-hidden pt-[76px]">
+      <JsonLd data={movieSchema} />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[880px]">
         <div
           className="absolute inset-0"
@@ -267,6 +318,8 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
           </div>
         </section>
       )}
+
+      <CommentSection slug={movie.slug} comments={comments} />
 
       <section id="byinshi" className="relative border-y border-white/[0.06] bg-ink-2/60 py-20">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">

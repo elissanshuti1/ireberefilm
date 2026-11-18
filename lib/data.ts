@@ -1,15 +1,17 @@
 import { ObjectId } from "mongodb";
 import {
+  getCommentsCollection,
   getGenresCollection,
   getMoviesCollection,
   getSettingsCollection,
+  serializeComment,
   serializeGenre,
   serializeMovie,
 } from "@/lib/db";
 import { posterSrc } from "@/lib/poster";
 import { decodeParam, normalizeSlug } from "@/lib/slug";
 import { defaultSettings } from "@/lib/settings";
-import type { GenreRecord, MovieRecord, PublicMovie, SiteSettings } from "@/lib/types";
+import type { CommentRecord, GenreRecord, MovieRecord, PublicMovie, SiteSettings } from "@/lib/types";
 
 function toPublic(movie: MovieRecord): PublicMovie {
   return { ...movie, image: posterSrc(movie) };
@@ -44,6 +46,13 @@ export async function getMovieById(id: string): Promise<MovieRecord | null> {
   const collection = await getMoviesCollection();
   const doc = await collection.findOne({ _id: new ObjectId(id) });
   return doc ? serializeMovie(doc as Record<string, unknown>) : null;
+}
+
+export async function getCommentsBySlug(slug: string, limit = 0): Promise<CommentRecord[]> {
+  const collection = await getCommentsCollection();
+  const cursor = collection.find({ movieSlug: slug }).sort({ pinned: -1, createdAt: -1 });
+  const docs = await (limit > 0 ? cursor.limit(limit) : cursor).toArray();
+  return docs.map((doc) => serializeComment(doc as Record<string, unknown>));
 }
 
 export async function getFeaturedMovies(): Promise<PublicMovie[]> {

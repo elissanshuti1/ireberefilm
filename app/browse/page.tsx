@@ -11,6 +11,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Filime zose",
   description: "Shakisha filime z'Agasobanuye mu Kinyarwanda ku rubuga rwa ireberefilm.",
+  alternates: { canonical: "/browse" },
+  openGraph: { url: "/browse" },
 };
 
 export default async function BrowsePage({ searchParams }: PageProps<"/browse">) {
