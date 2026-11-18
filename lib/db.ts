@@ -1,5 +1,11 @@
 import { MongoClient, ObjectId } from "mongodb";
-import type { CommentRecord, EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
+import type {
+  AnalyticsEventRecord,
+  CommentRecord,
+  EpisodeRecord,
+  GenreRecord,
+  MovieRecord,
+} from "@/lib/types";
 
 const dbName = process.env.MONGODB_DB ?? "ireberefilm";
 
@@ -46,6 +52,15 @@ export async function getCommentsCollection() {
   return collection;
 }
 
+export async function getAnalyticsCollection() {
+  const db = await getDb();
+  const collection = db.collection("analytics");
+  await collection.createIndex({ createdAt: -1 });
+  await collection.createIndex({ visitorId: 1 });
+  await collection.createIndex({ type: 1, createdAt: -1 });
+  return collection;
+}
+
 export async function getPostersBucket() {
   const db = await getDb();
   const { GridFSBucket } = await import("mongodb");
@@ -64,6 +79,20 @@ function serializeEpisode(doc: Record<string, unknown>, index: number): EpisodeR
     playback: doc.playback === "link" ? "link" : "embed",
     embedUrl: doc.embedUrl ? String(doc.embedUrl) : null,
     sourceUrl: String(doc.sourceUrl ?? ""),
+  };
+}
+
+export function serializeAnalyticsEvent(doc: Record<string, unknown>): AnalyticsEventRecord {
+  const type = doc.type === "movie_view" || doc.type === "movie_click" ? doc.type : "page_view";
+  return {
+    id: toId(doc._id),
+    visitorId: String(doc.visitorId ?? ""),
+    type,
+    path: String(doc.path ?? "/"),
+    slug: String(doc.slug ?? ""),
+    title: String(doc.title ?? ""),
+    referrer: String(doc.referrer ?? ""),
+    createdAt: String(doc.createdAt ?? new Date().toISOString()),
   };
 }
 

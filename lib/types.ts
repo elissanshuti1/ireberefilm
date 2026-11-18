@@ -56,6 +56,44 @@ export type CommentRecord = {
   createdAt: string;
 };
 
+export type AnalyticsEventRecord = {
+  id: string;
+  visitorId: string;
+  type: "page_view" | "movie_view" | "movie_click";
+  path: string;
+  slug: string;
+  title: string;
+  referrer: string;
+  createdAt: string;
+};
+
+export type VisitorSummary = {
+  id: string;
+  visits: number;
+  movieViews: number;
+  clicks: number;
+  lastSeen: string;
+  lastPath: string;
+};
+
+export type MovieAnalyticsSummary = {
+  slug: string;
+  title: string;
+  views: number;
+  clicks: number;
+};
+
+export type AnalyticsSummary = {
+  visits: number;
+  uniqueVisitors: number;
+  movieViews: number;
+  movieClicks: number;
+  todayVisits: number;
+  visitors: VisitorSummary[];
+  movies: MovieAnalyticsSummary[];
+  activity: AnalyticsEventRecord[];
+};
+
 export type GlobalComment = {
   name: string;
   message: string;

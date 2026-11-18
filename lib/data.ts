@@ -1,9 +1,11 @@
 import { ObjectId } from "mongodb";
 import {
+  getAnalyticsCollection,
   getCommentsCollection,
   getGenresCollection,
   getMoviesCollection,
   getSettingsCollection,
+  serializeAnalyticsEvent,
   serializeComment,
   serializeGenre,
   serializeMovie,
@@ -11,7 +13,18 @@ import {
 import { posterSrc } from "@/lib/poster";
 import { decodeParam, normalizeSlug } from "@/lib/slug";
 import { defaultSettings } from "@/lib/settings";
-import type { CommentRecord, GenreRecord, GlobalComment, MovieRecord, PublicMovie, SiteSettings } from "@/lib/types";
+import type {
+  AnalyticsEventRecord,
+  AnalyticsSummary,
+  CommentRecord,
+  GenreRecord,
+  GlobalComment,
+  MovieAnalyticsSummary,
+  MovieRecord,
+  PublicMovie,
+  SiteSettings,
+  VisitorSummary,
+} from "@/lib/types";
 
 function toPublic(movie: MovieRecord): PublicMovie {
   return { ...movie, image: posterSrc(movie) };
@@ -79,6 +92,84 @@ export async function getGlobalPinnedComment(): Promise<GlobalComment | null> {
   } catch {
     return null;
   }
+}
+
+export async function getAnalyticsEvents(limit = 0): Promise<AnalyticsEventRecord[]> {
+  if (!process.env.MONGODB_URI) return [];
+  const collection = await getAnalyticsCollection();
+  const cursor = collection.find({}).sort({ createdAt: -1 });
+  const docs = await (limit > 0 ? cursor.limit(limit) : cursor).toArray();
+  return docs.map((doc) => serializeAnalyticsEvent(doc as Record<string, unknown>));
+}
+
+export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  const events = await getAnalyticsEvents();
+  const visitors = new Map<string, VisitorSummary>();
+  const movies = new Map<string, MovieAnalyticsSummary>();
+  const today = new Date().toISOString().slice(0, 10);
+  let visits = 0;
+  let movieViews = 0;
+  let movieClicks = 0;
+  let todayVisits = 0;
+
+  for (const event of events) {
+    const visitorKey = event.visitorId || "anonymous";
+    const visitor = visitors.get(visitorKey) ?? {
+      id: visitorKey,
+      visits: 0,
+      movieViews: 0,
+      clicks: 0,
+      lastSeen: event.createdAt,
+      lastPath: event.path,
+    };
+
+    if (event.createdAt > visitor.lastSeen) {
+      visitor.lastSeen = event.createdAt;
+      visitor.lastPath = event.path;
+    }
+
+    if (event.type === "page_view") {
+      visits += 1;
+      visitor.visits += 1;
+      visitor.lastPath = event.path;
+      if (event.createdAt.slice(0, 10) === today) todayVisits += 1;
+    } else if (event.type === "movie_view") {
+      movieViews += 1;
+      visitor.movieViews += 1;
+    } else {
+      movieClicks += 1;
+      visitor.clicks += 1;
+    }
+
+    visitors.set(visitorKey, visitor);
+
+    if (event.slug) {
+      const movie = movies.get(event.slug) ?? {
+        slug: event.slug,
+        title: event.title || event.slug,
+        views: 0,
+        clicks: 0,
+      };
+      if (event.type === "movie_view") movie.views += 1;
+      if (event.type === "movie_click") movie.clicks += 1;
+      movies.set(event.slug, movie);
+    }
+  }
+
+  return {
+    visits,
+    uniqueVisitors: visitors.size,
+    movieViews,
+    movieClicks,
+    todayVisits,
+    visitors: [...visitors.values()]
+      .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
+      .slice(0, 20),
+    movies: [...movies.values()]
+      .sort((a, b) => b.views + b.clicks - (a.views + a.clicks))
+      .slice(0, 10),
+    activity: events.filter((event) => event.type !== "page_view").slice(0, 20),
+  };
 }
 
 export async function getFeaturedMovies(): Promise<PublicMovie[]> {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope, Outfit } from "next/font/google";
 import "./globals.css";
+import AnalyticsTracker from "@/components/analytics-tracker";
 import JsonLd from "@/components/json-ld";
 import SiteChrome from "@/components/site-chrome";
 import { getSettings } from "@/lib/data";
@@ -65,6 +66,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="rw" className={`${manrope.variable} ${outfit.variable} h-full`}>
       <body className="flex min-h-full flex-col bg-ink text-white antialiased">
+        <AnalyticsTracker />
         <JsonLd
           data={{
             "@context": "https://schema.org",
