@@ -64,6 +64,7 @@ async function main() {
           playback: movie.playback,
           embedUrl: movie.embedUrl ?? null,
           isSeason: false,
+          hasParts: false,
           episodes: [],
           featured: Boolean(movie.featured),
           published: true,

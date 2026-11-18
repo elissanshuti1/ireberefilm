@@ -29,6 +29,10 @@ export async function generateMetadata({
   };
 }
 
+function partLetter(number: number) {
+  return String.fromCharCode(65 + ((Math.max(number, 1) - 1) % 26));
+}
+
 export default async function MoviePage({ params }: PageProps<"/movies/[slug]">) {
   const { slug } = await params;
   const [movie, allMovies, genres] = await Promise.all([
@@ -40,8 +44,9 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
 
   const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
   const view = toMovieView(movie, colors[movie.genre]);
-  const canEmbed = !view.isSeason && view.playback === "embed" && Boolean(view.embedUrl);
-  const canWatchOutside = !view.isSeason && Boolean(view.sourceUrl) && view.sourceUrl !== "#";
+  const isMultiPart = view.isSeason || view.hasParts;
+  const canEmbed = !isMultiPart && view.playback === "embed" && Boolean(view.embedUrl);
+  const canWatchOutside = !isMultiPart && Boolean(view.sourceUrl) && view.sourceUrl !== "#";
   const watchData = {
     slug: view.slug,
     title: view.title,
@@ -128,10 +133,11 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
               <span className="glass-soft flex items-center gap-2 rounded-full px-4 py-2">
                 <Film className="size-3.5 text-gold" /> {view.year}
               </span>
-              {view.isSeason && (
+              {isMultiPart && (
                 <span className="glass-soft flex items-center gap-2 rounded-full px-4 py-2 text-gold">
                   <Layers className="size-3.5" />
-                  Season · {view.episodes.length} {view.episodes.length === 1 ? "gice" : "ibice"}
+                  {view.isSeason ? "Season" : "Ibice"} · {view.episodes.length}{" "}
+                  {view.episodes.length === 1 ? "gice" : "ibice"}
                 </span>
               )}
             </div>
@@ -141,7 +147,7 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
             </p>
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
-              {view.isSeason ? (
+              {isMultiPart ? (
                 <a
                   href="#ibice"
                   className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-gold px-8 py-4 text-sm font-extrabold text-ink shadow-[0_20px_60px_-22px_rgba(247,183,51,0.95)] transition-transform duration-300 hover:scale-[1.04]"
@@ -190,13 +196,15 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
         </div>
       </section>
 
-      {view.isSeason && (
+      {isMultiPart && (
         <section id="ibice" className="relative border-y border-white/[0.06] bg-ink-2/60 py-20">
           <div className="mx-auto max-w-7xl px-5 sm:px-8">
             <SectionHeading
-              eyebrow="Season"
+              eyebrow={view.isSeason ? "Season" : "Ibice bya filime"}
               title="Ibigice byose"
-              description={`${view.episodes.length} ${view.episodes.length === 1 ? "gice" : "ibice"} muri iyi season.`}
+              description={`${view.episodes.length} ${view.episodes.length === 1 ? "gice" : "ibice"} muri ${
+                view.isSeason ? "iyi season" : "iyi filime"
+              }.`}
             />
             {view.episodes.length === 0 ? (
               <Reveal>
@@ -218,14 +226,19 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
                     <Reveal key={episode.id} delay={Math.min(index, 6) * 0.05}>
                       <div className="glass-soft flex flex-wrap items-center gap-4 rounded-2xl p-4 transition-colors hover:border-gold/30 sm:p-5">
                         <span className="font-display grid size-12 shrink-0 place-items-center rounded-xl bg-gold/10 text-lg font-extrabold text-gold">
-                          {String(episode.number).padStart(2, "0")}
+                          {view.isSeason
+                            ? String(episode.number).padStart(2, "0")
+                            : partLetter(episode.number)}
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="font-display text-base font-bold text-white sm:text-lg">
                             {episode.title}
                           </p>
                           <p className="mt-1 text-xs text-white/35">
-                            Igice cya {episode.number} · {view.title}
+                            {view.isSeason
+                              ? `Igice cya ${episode.number}`
+                              : `Igice ${partLetter(episode.number)}`}{" "}
+                            · {view.title}
                           </p>
                         </div>
                         {episode.playback === "embed" && episode.embedUrl ? (
@@ -265,8 +278,12 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
               { label: "Umwaka", value: String(view.year), icon: Play },
               {
                 label: "Uko iboneka",
-                value: view.isSeason ? `Season · ${view.episodes.length}` : canEmbed ? "Kureba hano" : "Kuranga hanze",
-                icon: view.isSeason ? Layers : Play,
+                value: isMultiPart
+                  ? `${view.isSeason ? "Season" : "Ibice"} · ${view.episodes.length}`
+                  : canEmbed
+                    ? "Kureba hano"
+                    : "Kuranga hanze",
+                icon: isMultiPart ? Layers : Play,
               },
             ].map((item, index) => (
               <Reveal key={item.label} delay={index * 0.07}>

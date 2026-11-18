@@ -103,9 +103,9 @@ export default async function AdminMoviesPage({ searchParams }: PageProps<"/admi
                       <p className="text-xs text-white/35">
                         {movie.originalTitle} · {movie.year}
                       </p>
-                      {movie.isSeason && (
+                      {(movie.isSeason || movie.hasParts) && (
                         <p className="mt-1 text-[10px] font-bold text-gold">
-                          Season · {movie.episodes.length} ibice
+                          {movie.isSeason ? "Season" : "Ibice"} · {movie.episodes.length} ibice
                         </p>
                       )}
                     </div>

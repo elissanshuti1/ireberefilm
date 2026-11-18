@@ -12,13 +12,13 @@ import type { EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
 
 type Props = { movie?: MovieRecord; genres: GenreRecord[] };
 
+type MovieKind = "movie" | "parts" | "season";
+
 type EpisodeDraft = {
   id: string;
   number: number;
   title: string;
-  playback: "embed" | "link";
-  embedUrl: string;
-  sourceUrl: string;
+  link: string;
 };
 
 const inputClass =
@@ -27,6 +27,26 @@ const inputClass =
 function newEpisodeId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
   return `episode-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function partLetter(index: number) {
+  return String.fromCharCode(65 + (index % 26));
+}
+
+function isVsembedLink(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  const candidate = trimmed.startsWith("//")
+    ? `https:${trimmed}`
+    : /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
+  try {
+    const host = new URL(candidate).hostname.toLowerCase().replace(/^www\./, "");
+    return host === "vsembed.com" || host.endsWith(".vsembed.com");
+  } catch {
+    return false;
+  }
 }
 
 function Label({ children, hint }: { children: React.ReactNode; hint?: string }) {
@@ -42,15 +62,17 @@ export default function MovieForm({ movie, genres }: Props) {
   const [state, formAction, pending] = useActionState(saveMovieAction, emptyActionState);
   const [playback, setPlayback] = useState<"embed" | "link">(movie?.playback ?? "embed");
   const [preview, setPreview] = useState(movie ? posterSrc(movie) : null);
-  const [isSeason, setIsSeason] = useState(Boolean(movie?.isSeason));
+  const [kind, setKind] = useState<MovieKind>(
+    movie?.isSeason ? "season" : movie?.hasParts ? "parts" : "movie",
+  );
+  const isSeason = kind === "season";
+  const isMultiPart = kind !== "movie";
   const [episodes, setEpisodes] = useState<EpisodeDraft[]>(() =>
     (movie?.episodes ?? []).map((episode: EpisodeRecord) => ({
       id: episode.id,
       number: episode.number,
       title: episode.title,
-      playback: episode.playback,
-      embedUrl: episode.embedUrl ?? "",
-      sourceUrl: episode.sourceUrl,
+      link: episode.embedUrl || episode.sourceUrl || "",
     })),
   );
 
@@ -66,10 +88,8 @@ export default function MovieForm({ movie, genres }: Props) {
       {
         id: newEpisodeId(),
         number: current.length + 1,
-        title: `Igice cya ${current.length + 1}`,
-        playback: "embed",
-        embedUrl: "",
-        sourceUrl: "",
+        title: kind === "parts" ? partLetter(current.length) : `Igice cya ${current.length + 1}`,
+        link: "",
       },
     ]);
   };
@@ -86,7 +106,7 @@ export default function MovieForm({ movie, genres }: Props) {
       className="space-y-6"
     >
       {movie && <input type="hidden" name="id" value={movie.id} />}
-      {isSeason && (
+      {isMultiPart && (
         <input type="hidden" name="episodeIds" value={episodes.map((episode) => episode.id).join(",")} />
       )}
 
@@ -147,22 +167,25 @@ export default function MovieForm({ movie, genres }: Props) {
             <Label>Umusobanuzi / Uwatwaye ijwi</Label>
             <input name="creator" defaultValue={movie?.creator} className={inputClass} />
           </label>
-          <label className="md:col-span-2 flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
-            <input
-              name="isSeason"
-              type="checkbox"
-              checked={isSeason}
-              onChange={(event) => setIsSeason(event.target.checked)}
-              className="mt-1 size-5 accent-[#f7b733]"
-            />
-            <span>
-              <span className="flex items-center gap-2 text-sm font-bold text-white">
-                <Layers className="size-4 text-gold" />
-                Iyi ni season / serie
-              </span>
-              <span className="mt-1 block text-xs leading-6 text-white/40">
-                Abareba bazabona ikarita imwe, hanyuma babone ibice byose bari muri iyi season.
-              </span>
+          <label className="md:col-span-2">
+            <Label>Ubwoko bw&apos;iki kintu</Label>
+            <select
+              name="kind"
+              value={kind}
+              onChange={(event) => setKind(event.target.value as MovieKind)}
+              className={inputClass}
+            >
+              <option value="movie" className="bg-ink-2">Filime imwe</option>
+              <option value="parts" className="bg-ink-2">Filime ifite ibice A, B, C...</option>
+              <option value="season" className="bg-ink-2">Season / serie</option>
+            </select>
+            <span className="mt-2 flex items-start gap-2 text-xs leading-6 text-white/40">
+              <Layers className="mt-1 size-4 shrink-0 text-gold" />
+              {isSeason
+                ? "Abareba bazabona ikarita imwe ya season, hanyuma babone ibice byayo byose."
+                : kind === "parts"
+                  ? "Abareba bazabona ikarita imwe, hanyuma babone ibice A, B, C bya filime."
+                  : "Abareba bazabona filime imwe ishobora kurebwa hano cyangwa hanze."}
             </span>
           </label>
         </div>
@@ -196,10 +219,14 @@ export default function MovieForm({ movie, genres }: Props) {
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <h2 className="font-display text-lg font-extrabold">
-          {isSeason ? "Ibigice bya season" : "Uko ikurikirwa"}
+          {isSeason
+            ? "Ibigice bya season"
+            : kind === "parts"
+              ? "Ibice bya filime (A, B, C...)"
+              : "Uko ikurikirwa"}
         </h2>
 
-        {isSeason ? (
+        {isMultiPart ? (
           <div className="mt-5 space-y-4">
             {episodes.length === 0 && (
               <p className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-5 text-sm text-white/40">
@@ -211,7 +238,7 @@ export default function MovieForm({ movie, genres }: Props) {
               <div key={episode.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-display text-sm font-bold text-white/70">
-                    Igice {index + 1}
+                    Igice {isSeason ? index + 1 : partLetter(index)}
                   </p>
                   <button
                     type="button"
@@ -222,7 +249,7 @@ export default function MovieForm({ movie, genres }: Props) {
                     Kuraho
                   </button>
                 </div>
-                <div className="mt-4 grid gap-3 md:grid-cols-[110px_1fr_190px]">
+                <div className="mt-4 grid gap-3 md:grid-cols-[110px_1fr]">
                   <label>
                     <Label>Numero</Label>
                     <input
@@ -244,40 +271,21 @@ export default function MovieForm({ movie, genres }: Props) {
                       placeholder="Urugero: Igice cya 1"
                     />
                   </label>
-                  <label>
-                    <Label>Uburyo</Label>
-                    <select
-                      name={`episode-${episode.id}-playback`}
-                      value={episode.playback}
-                      onChange={(event) =>
-                        updateEpisode(episode.id, { playback: event.target.value as "embed" | "link" })
-                      }
-                      className={inputClass}
-                    >
-                      <option value="embed" className="bg-ink-2">Kureba hano</option>
-                      <option value="link" className="bg-ink-2">Kuranga hanze</option>
-                    </select>
-                  </label>
                   <label className="md:col-span-2">
-                    <Label hint="link iyariyo yose (http/https)">Embed URL</Label>
+                    <Label hint="http, https cyangwa izina rya domain gusa">Link y&apos;igice</Label>
                     <input
-                      name={`episode-${episode.id}-embedUrl`}
-                      value={episode.embedUrl}
-                      onChange={(event) => updateEpisode(episode.id, { embedUrl: event.target.value })}
+                      name={`episode-${episode.id}-url`}
+                      value={episode.link}
+                      onChange={(event) => updateEpisode(episode.id, { link: event.target.value })}
                       className={inputClass}
-                      placeholder="https://..."
+                      placeholder="https://vsembed.com/... cyangwa https://audinifer.com/..."
                     />
                   </label>
-                  <label>
-                    <Label>Link-out URL</Label>
-                    <input
-                      name={`episode-${episode.id}-sourceUrl`}
-                      value={episode.sourceUrl}
-                      onChange={(event) => updateEpisode(episode.id, { sourceUrl: event.target.value })}
-                      className={inputClass}
-                      placeholder="https://..."
-                    />
-                  </label>
+                  <p className="md:col-span-2 text-xs leading-6 text-white/40">
+                    {isVsembedLink(episode.link)
+                      ? "Iyi link izakina hano muri website."
+                      : "Iyi link izafungurwa hanze kugira uyikine."}
+                  </p>
                 </div>
               </div>
             ))}
@@ -357,7 +365,15 @@ export default function MovieForm({ movie, genres }: Props) {
           className="flex items-center gap-2 rounded-xl bg-gold px-6 py-3 text-sm font-extrabold text-ink hover:bg-amber-300 disabled:opacity-60"
         >
           <Save className="size-4" />
-          {pending ? "Kubika..." : movie ? "Hindura" : isSeason ? "Ongera season" : "Ongera filime"}
+          {pending
+            ? "Kubika..."
+            : movie
+              ? "Hindura"
+              : isSeason
+                ? "Ongera season"
+                : kind === "parts"
+                  ? "Ongera filime ifite ibice"
+                  : "Ongera filime"}
         </button>
       </div>
     </motion.form>

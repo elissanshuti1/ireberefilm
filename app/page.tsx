@@ -47,6 +47,7 @@ export default async function Home() {
       poster: movie.poster,
       creator: movie.creator,
       isSeason: movie.isSeason,
+      hasParts: movie.hasParts,
       episodeCount: movie.episodes.length,
     }),
   );

@@ -29,6 +29,7 @@ type HeroMovie = Pick<
   | "poster"
   | "creator"
   | "isSeason"
+  | "hasParts"
 > & { episodeCount: number };
 
 const variants = {
@@ -157,12 +158,13 @@ export default function HeroCarousel({
                 <span className="text-[11px] font-bold tracking-[0.22em] text-gold uppercase">
                   {movie.kicker ?? "Agasobanuye"}
                 </span>
-                {movie.isSeason && (
+                {(movie.isSeason || movie.hasParts) && (
                   <>
                     <span className="size-1.5 animate-pulse rounded-full bg-gold" />
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gold uppercase">
                       <Layers className="size-3.5" />
-                      Season · {movie.episodeCount} {movie.episodeCount === 1 ? "gice" : "ibice"}
+                      {movie.isSeason ? "Season" : "Ibice"} · {movie.episodeCount}{" "}
+                      {movie.episodeCount === 1 ? "gice" : "ibice"}
                     </span>
                   </>
                 )}

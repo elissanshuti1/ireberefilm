@@ -21,13 +21,28 @@ function field(formData: FormData, name: string) {
 }
 
 function safeUrl(value: string, label: string) {
-  if (!value) return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const candidate = trimmed.startsWith("//")
+    ? `https:${trimmed}`
+    : /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`;
   try {
-    const url = new URL(value);
+    const url = new URL(candidate);
     if (!["http:", "https:"].includes(url.protocol)) throw new Error();
     return url.toString();
   } catch {
     throw new Error(`${label} igomba kuba link ya http cyangwa https`);
+  }
+}
+
+function isVsembedUrl(value: string) {
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/^www\./, "");
+    return host === "vsembed.com" || host.endsWith(".vsembed.com");
+  } catch {
+    return false;
   }
 }
 
@@ -45,22 +60,18 @@ function episodesFromForm(formData: FormData): EpisodeRecord[] {
     .map((id, index) => {
       const number = Number(field(formData, `episode-${id}-number`)) || index + 1;
       const title = field(formData, `episode-${id}-title`) || `Igice cya ${number}`;
-      const playback: EpisodeRecord["playback"] =
-        field(formData, `episode-${id}-playback`) === "link" ? "link" : "embed";
-      const sourceUrl = safeUrl(
-        field(formData, `episode-${id}-sourceUrl`),
-        `Link ya ${title}`,
-      );
-      const embedUrl =
-        playback === "embed"
-          ? safeEmbedUrl(field(formData, `episode-${id}-embedUrl`) || sourceUrl)
-          : null;
-      if (playback === "embed" && !embedUrl) {
-        throw new Error(`Shyira embed link ya ${title}`);
-      }
-      if (playback === "link" && !sourceUrl) {
+      const rawLink =
+        field(formData, `episode-${id}-url`) ||
+        field(formData, `episode-${id}-sourceUrl`) ||
+        field(formData, `episode-${id}-embedUrl`);
+      const sourceUrl = safeUrl(rawLink, `Link ya ${title}`);
+      if (!sourceUrl) {
         throw new Error(`Shyira link ya ${title}`);
       }
+      const playback: EpisodeRecord["playback"] = isVsembedUrl(sourceUrl)
+        ? "embed"
+        : "link";
+      const embedUrl = playback === "embed" ? sourceUrl : null;
       return { id, number, title, playback, embedUrl, sourceUrl };
     })
     .sort((a, b) => a.number - b.number);
@@ -117,19 +128,23 @@ export async function saveMovieAction(
     const duration = field(formData, "duration") || "—";
     const rating = field(formData, "rating") || "0";
     const creator = field(formData, "creator");
-    const isSeason = formData.has("isSeason");
-    const source = isSeason ? "" : field(formData, "source");
-    const sourceUrl = isSeason ? "" : safeUrl(field(formData, "sourceUrl"), "Source link");
+    const kind =
+      field(formData, "kind") || (formData.has("isSeason") ? "season" : "movie");
+    const isSeason = kind === "season";
+    const hasParts = kind === "parts";
+    const isMultiPart = isSeason || hasParts;
+    const source = isMultiPart ? "" : field(formData, "source");
+    const sourceUrl = isMultiPart ? "" : safeUrl(field(formData, "sourceUrl"), "Source link");
     const playback =
-      isSeason || field(formData, "playback") !== "embed" ? "link" : "embed";
+      isMultiPart || field(formData, "playback") !== "embed" ? "link" : "embed";
     const embedUrl =
-      isSeason || playback !== "embed"
+      isMultiPart || playback !== "embed"
         ? null
         : safeEmbedUrl(field(formData, "embedUrl") || sourceUrl);
-    if (!isSeason && playback === "embed" && !embedUrl) {
+    if (!isMultiPart && playback === "embed" && !embedUrl) {
       throw new Error("Shyira embed link");
     }
-    const episodes = isSeason ? episodesFromForm(formData) : [];
+    const episodes = isMultiPart ? episodesFromForm(formData) : [];
 
     let slug = normalizeSlug(field(formData, "slug") || title);
     if (!slug) throw new Error("Slug ntiboneka");
@@ -168,6 +183,7 @@ export async function saveMovieAction(
       playback,
       embedUrl,
       isSeason,
+      hasParts,
       episodes,
       featured: formData.has("featured"),
       published: formData.has("published"),
@@ -226,7 +242,7 @@ export async function checkLinkAction(formData: FormData) {
   if (!movie) return;
   const episodes = Array.isArray(movie.episodes) ? movie.episodes : [];
   const firstEpisode = episodes[0] as Record<string, unknown> | undefined;
-  const target = movie.isSeason
+  const target = movie.isSeason || movie.hasParts
     ? firstEpisode?.playback === "embed"
       ? firstEpisode?.embedUrl
       : firstEpisode?.sourceUrl

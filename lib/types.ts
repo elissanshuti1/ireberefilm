@@ -35,6 +35,7 @@ export type MovieRecord = {
   playback: "embed" | "link";
   embedUrl: string | null;
   isSeason: boolean;
+  hasParts: boolean;
   episodes: EpisodeRecord[];
   featured: boolean;
   published: boolean;

@@ -76,6 +76,7 @@ export function serializeMovie(doc: Record<string, unknown>): MovieRecord {
     playback: doc.playback === "embed" ? "embed" : "link",
     embedUrl: doc.embedUrl ? String(doc.embedUrl) : null,
     isSeason: Boolean(doc.isSeason),
+    hasParts: Boolean(doc.hasParts),
     episodes: Array.isArray(doc.episodes)
       ? doc.episodes.map((episode, index) =>
           serializeEpisode(episode as Record<string, unknown>, index),
