@@ -203,7 +203,7 @@ export default function MovieForm({ movie, genres }: Props) {
           <div className="mt-5 space-y-4">
             {episodes.length === 0 && (
               <p className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-5 text-sm text-white/40">
-                Nta gice kiriho. Kanda &ldquo;Ongera igice&rdquo; hanyuma ushyire link ya vsembed.
+                Nta gice kiriho. Kanda &ldquo;Ongera igice&rdquo; hanyuma ushyire link iyariyo yose.
               </p>
             )}
 
@@ -259,13 +259,13 @@ export default function MovieForm({ movie, genres }: Props) {
                     </select>
                   </label>
                   <label className="md:col-span-2">
-                    <Label hint="vsembed, youtube cyangwa oshakurfilms">Embed URL</Label>
+                    <Label hint="link iyariyo yose (http/https)">Embed URL</Label>
                     <input
                       name={`episode-${episode.id}-embedUrl`}
                       value={episode.embedUrl}
                       onChange={(event) => updateEpisode(episode.id, { embedUrl: event.target.value })}
                       className={inputClass}
-                      placeholder="https://vsembed.com/..."
+                      placeholder="https://..."
                     />
                   </label>
                   <label>
@@ -317,17 +317,18 @@ export default function MovieForm({ movie, genres }: Props) {
               <input name="sourceUrl" defaultValue={movie?.sourceUrl} className={inputClass} placeholder="https://..." />
             </label>
             <label className="md:col-span-2">
-              <Label hint="vsembed, youtube cyangwa oshakurfilms">Embed URL</Label>
+              <Label hint="link iyariyo yose (http/https)">Embed URL</Label>
               <input
                 name="embedUrl"
                 defaultValue={movie?.embedUrl ?? ""}
                 className={inputClass}
-                placeholder="https://vsembed.com/qpqrw"
+                placeholder="https://..."
               />
             </label>
             <p className="md:col-span-2 text-xs leading-6 text-white/40">
-              Niba ushyize vsembed muri Source URL, hitamo &ldquo;Kureba hano&rdquo; hanyuma usige Embed URL ubusa
-              — filime izakina muri ireberefilm. Niba ushitamo &ldquo;Kuranga hanze&rdquo;, abareba bazajya kuri iyo link.
+              Shyira link iyariyo yose (http/https) muri Embed URL hanyuma hitamo &ldquo;Kureba hano&rdquo;
+              — filime izakina muri ireberefilm. Niba urubuga rwabujije kwinjizwa muri iframe, hitamo
+              &ldquo;Kuranga hanze&rdquo;.
             </p>
           </div>
         )}

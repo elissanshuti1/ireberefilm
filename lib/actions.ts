@@ -31,16 +31,8 @@ function safeUrl(value: string, label: string) {
   }
 }
 
-const embedHosts = ["vsembed.com", "oshakurfilms.com", "youtube.com", "youtu.be", "dailymotion.com"];
-
 function safeEmbedUrl(value: string) {
-  const url = safeUrl(value, "Embed link");
-  if (!url) return null;
-  const host = new URL(url).hostname.replace(/^www\./, "");
-  if (!embedHosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`))) {
-    throw new Error("Embed link igomba kuba ya vsembed, youtube cyangwa oshakurfilms");
-  }
-  return url;
+  return safeUrl(value, "Embed link") || null;
 }
 
 function episodesFromForm(formData: FormData): EpisodeRecord[] {
@@ -135,7 +127,7 @@ export async function saveMovieAction(
         ? null
         : safeEmbedUrl(field(formData, "embedUrl") || sourceUrl);
     if (!isSeason && playback === "embed" && !embedUrl) {
-      throw new Error("Shyira embed link ya vsembed");
+      throw new Error("Shyira embed link");
     }
     const episodes = isSeason ? episodesFromForm(formData) : [];
 
