@@ -22,7 +22,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings();
   const siteUrl = getSiteUrl();
   const verificationToken =
-    process.env.GOOGLE_SITE_VERIFICATION ?? process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+    process.env.GOOGLE_SITE_VERIFICATION ||
+    process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+    "_MlS2RSZ-8M1AWduF2i60nH13t4ansbhHS5Nll-Z0y8";
   const title = `${settings.siteName} — Agasobanuye mu Kinyarwanda`;
 
   return {
