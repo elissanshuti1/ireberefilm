@@ -88,23 +88,28 @@ export async function getGenres(): Promise<GenreRecord[]> {
 }
 
 export async function getSettings(): Promise<SiteSettings> {
-  const collection = await getSettingsCollection();
-  const doc = await collection.findOne({ key: "site" });
-  if (!doc) return defaultSettings;
-  const data = doc as Record<string, unknown>;
-  return {
-    siteName: String(data.siteName ?? defaultSettings.siteName),
-    tagline: String(data.tagline ?? defaultSettings.tagline),
-    heroCta: String(data.heroCta ?? defaultSettings.heroCta),
-    heroSecondary: String(data.heroSecondary ?? defaultSettings.heroSecondary),
-    newTitle: String(data.newTitle ?? defaultSettings.newTitle),
-    popularTitle: String(data.popularTitle ?? defaultSettings.popularTitle),
-    categoriesTitle: String(data.categoriesTitle ?? defaultSettings.categoriesTitle),
-    searchPlaceholder: String(data.searchPlaceholder ?? defaultSettings.searchPlaceholder),
-    aboutIntro: String(data.aboutIntro ?? defaultSettings.aboutIntro),
-    footerText: String(data.footerText ?? defaultSettings.footerText),
-    contactEmail: String(data.contactEmail ?? defaultSettings.contactEmail),
-  };
+  if (!process.env.MONGODB_URI) return defaultSettings;
+  try {
+    const collection = await getSettingsCollection();
+    const doc = await collection.findOne({ key: "site" });
+    if (!doc) return defaultSettings;
+    const data = doc as Record<string, unknown>;
+    return {
+      siteName: String(data.siteName ?? defaultSettings.siteName),
+      tagline: String(data.tagline ?? defaultSettings.tagline),
+      heroCta: String(data.heroCta ?? defaultSettings.heroCta),
+      heroSecondary: String(data.heroSecondary ?? defaultSettings.heroSecondary),
+      newTitle: String(data.newTitle ?? defaultSettings.newTitle),
+      popularTitle: String(data.popularTitle ?? defaultSettings.popularTitle),
+      categoriesTitle: String(data.categoriesTitle ?? defaultSettings.categoriesTitle),
+      searchPlaceholder: String(data.searchPlaceholder ?? defaultSettings.searchPlaceholder),
+      aboutIntro: String(data.aboutIntro ?? defaultSettings.aboutIntro),
+      footerText: String(data.footerText ?? defaultSettings.footerText),
+      contactEmail: String(data.contactEmail ?? defaultSettings.contactEmail),
+    };
+  } catch {
+    return defaultSettings;
+  }
 }
 
 export async function getDashboardStats() {

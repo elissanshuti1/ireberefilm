@@ -1,23 +1,26 @@
 import { MongoClient, ObjectId } from "mongodb";
 import type { CommentRecord, EpisodeRecord, GenreRecord, MovieRecord } from "@/lib/types";
 
-const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB ?? "ireberefilm";
-
-if (!uri) throw new Error("MONGODB_URI is missing. Add it to .env.local");
 
 const globalForMongo = globalThis as typeof globalThis & {
   irebereClient?: Promise<MongoClient>;
 };
 
-const clientPromise =
-  globalForMongo.irebereClient ??
-  new MongoClient(uri, { maxPoolSize: 10, serverSelectionTimeoutMS: 8000 }).connect();
-
-globalForMongo.irebereClient = clientPromise;
+function getClientPromise() {
+  if (!globalForMongo.irebereClient) {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) throw new Error("MONGODB_URI is missing. Add it to Vercel environment variables");
+    globalForMongo.irebereClient = new MongoClient(uri, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 8000,
+    }).connect();
+  }
+  return globalForMongo.irebereClient;
+}
 
 export async function getDb() {
-  const client = await clientPromise;
+  const client = await getClientPromise();
   return client.db(dbName);
 }
 
