@@ -7,16 +7,20 @@ import CommentSection from "@/components/comment-section";
 import JsonLd from "@/components/json-ld";
 import MovieCard from "@/components/movie-card";
 import PlayerButton from "@/components/player-button";
+import ProgressRecorder from "@/components/progress-recorder";
 import Reveal from "@/components/reveal";
 import SectionHeading from "@/components/section-heading";
+import WatchButton from "@/components/watch-button";
+import WatchFallback from "@/components/watch-fallback";
 import {
-  getCommentsBySlug,
+  getCommentViewsBySlug,
   getGenres,
   getGlobalPinnedComment,
   getMovieBySlug,
   getPublicMovies,
 } from "@/lib/data";
 import { absoluteUrl, getSiteUrl } from "@/lib/site";
+import { readVisitorId } from "@/lib/visitor";
 import { toMovieView, toMovieViews } from "@/lib/view";
 
 export const dynamic = "force-dynamic";
@@ -65,10 +69,11 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
   const { slug } = await params;
   const movie = await getMovieBySlug(slug);
   if (!movie) notFound();
+  const visitorId = await readVisitorId();
   const [allMovies, genres, comments, globalComment] = await Promise.all([
     getPublicMovies(),
     getGenres(),
-    getCommentsBySlug(movie.slug),
+    getCommentViewsBySlug(movie.slug, visitorId),
     getGlobalPinnedComment(),
   ]);
 
@@ -83,6 +88,13 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
     poster: view.poster,
     creator: view.creator,
     embedUrl: view.embedUrl,
+  };
+  const libraryMovie = {
+    slug: view.slug,
+    title: view.title,
+    poster: view.poster,
+    genre: view.genre,
+    year: view.year,
   };
   const related = [
     ...allMovies.filter((item) => item.slug !== movie.slug && item.genre === movie.genre),
@@ -120,6 +132,7 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
   return (
     <main className="relative overflow-hidden pt-[76px]">
       <JsonLd data={movieSchema} />
+      <ProgressRecorder movie={libraryMovie} />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[880px]">
         <div
           className="absolute inset-0"
@@ -218,12 +231,13 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
                   <ArrowUpRight className="relative size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
               ) : canEmbed ? (
-                <PlayerButton movie={watchData} />
+                <PlayerButton movie={watchData} progressLabel={view.title} />
               ) : canWatchOutside ? (
                 <a
                   href={view.sourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-watch-episode={view.title}
                   className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-gold px-8 py-4 text-sm font-extrabold text-ink shadow-[0_20px_60px_-22px_rgba(247,183,51,0.95)] transition-transform duration-300 hover:scale-[1.04]"
                 >
                   <span className="pulse-ring absolute inset-0 rounded-full bg-white/30" />
@@ -234,7 +248,10 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
                   <ArrowUpRight className="relative size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
               ) : null}
+              <WatchButton movie={libraryMovie} />
             </div>
+
+            <WatchFallback slug={view.slug} title={view.title} sourceUrl={view.sourceUrl} />
 
             <div className="glass-soft mt-9 flex max-w-xl items-center gap-4 rounded-2xl px-5 py-4">
               <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-gold/10 text-gold">
@@ -304,12 +321,14 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
                             movie={episodeWatchData}
                             label="Kureba"
                             subtitle={episode.title}
+                            progressLabel={episode.title}
                           />
                         ) : (
                           <a
                             href={episode.sourceUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            data-watch-episode={episode.title}
                             className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-white/70 transition-all hover:border-gold/50 hover:bg-gold/10 hover:text-gold"
                           >
                             Kureba Hanze

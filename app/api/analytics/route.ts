@@ -1,13 +1,11 @@
-import { randomUUID } from "node:crypto";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getAnalyticsCollection, getMoviesCollection } from "@/lib/db";
 import { normalizeSlug } from "@/lib/slug";
+import { getOrCreateVisitorId } from "@/lib/visitor";
 
 export const dynamic = "force-dynamic";
 
-const allowedTypes = new Set(["page_view", "movie_view", "movie_click"]);
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const allowedTypes = new Set(["page_view", "movie_view", "movie_click", "playback_error"]);
 
 export async function POST(request: Request) {
   try {
@@ -26,18 +24,7 @@ export async function POST(request: Request) {
     const title = String(body.title ?? "").slice(0, 160);
     const referrer = String(body.referrer ?? "").slice(0, 300);
 
-    const cookieStore = await cookies();
-    const existingId = cookieStore.get("irebere_visitor")?.value;
-    const visitorId = existingId && uuidPattern.test(existingId) ? existingId : randomUUID();
-    cookieStore.set({
-      name: "irebere_visitor",
-      value: visitorId,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 365,
-    });
+    const visitorId = await getOrCreateVisitorId();
 
     if (process.env.MONGODB_URI) {
       let eventTitle = title;

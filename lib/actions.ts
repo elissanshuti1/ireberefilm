@@ -14,6 +14,7 @@ import {
 } from "@/lib/db";
 import { deletePoster, uploadPoster } from "@/lib/images";
 import { normalizeSlug } from "@/lib/slug";
+import { getOrCreateVisitorId } from "@/lib/visitor";
 import type { ActionState } from "@/lib/action-state";
 import type { EpisodeRecord } from "@/lib/types";
 
@@ -414,13 +415,30 @@ export async function addCommentAction(
     const movie = await movies.findOne({ slug, published: { $ne: false } });
     if (!movie) throw new Error("Filime ntiboneka");
 
+    const parentId = field(formData, "parentId");
     const comments = await getCommentsCollection();
+    if (parentId) {
+      if (!ObjectId.isValid(parentId)) throw new Error("Ubutumwa ntiboneka");
+      const parent = await comments.findOne({
+        _id: new ObjectId(parentId),
+        movieSlug: slug,
+        status: { $ne: "hidden" },
+      });
+      if (!parent) throw new Error("Ubutumwa ntiboneka");
+    }
+
+    const visitorId = await getOrCreateVisitorId();
     await comments.insertOne({
       movieSlug: slug,
       name,
       message,
       pinned: false,
       authorRole: "viewer",
+      visitorId,
+      parentId: parentId || null,
+      likedBy: [],
+      reportedBy: [],
+      status: "approved",
       createdAt: new Date().toISOString(),
     });
     revalidateMovie(slug);
@@ -448,6 +466,11 @@ export async function adminAddCommentAction(
       message,
       pinned: formData.has("pinned"),
       authorRole: "admin",
+      visitorId: "admin",
+      parentId: null,
+      likedBy: [],
+      reportedBy: [],
+      status: "approved",
       createdAt: new Date().toISOString(),
     });
     revalidateMovie(slug, movieId);
@@ -472,6 +495,67 @@ export async function pinCommentAction(formData: FormData) {
   revalidateMovie(slug, movieId);
 }
 
+export async function toggleCommentLikeAction(formData: FormData) {
+  const id = field(formData, "commentId");
+  const slug = normalizeSlug(field(formData, "slug"));
+  if (!ObjectId.isValid(id) || !slug) return;
+
+  const visitorId = await getOrCreateVisitorId();
+  const comments = await getCommentsCollection();
+  const comment = await comments.findOne({ _id: new ObjectId(id), movieSlug: slug });
+  if (!comment || comment.status === "hidden") return;
+
+  const likedBy = Array.isArray(comment.likedBy) ? comment.likedBy.map(String) : [];
+  const nextLikedBy = likedBy.includes(visitorId)
+    ? likedBy.filter((item) => item !== visitorId)
+    : [...likedBy, visitorId];
+  await comments.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { likedBy: nextLikedBy, updatedAt: new Date().toISOString() } },
+  );
+  revalidateMovie(slug);
+}
+
+export async function reportCommentAction(formData: FormData) {
+  const id = field(formData, "commentId");
+  const slug = normalizeSlug(field(formData, "slug"));
+  if (!ObjectId.isValid(id) || !slug) return;
+
+  const visitorId = await getOrCreateVisitorId();
+  const comments = await getCommentsCollection();
+  const comment = await comments.findOne({ _id: new ObjectId(id), movieSlug: slug });
+  if (!comment || comment.status !== "approved") return;
+
+  const reportedBy = Array.isArray(comment.reportedBy) ? comment.reportedBy.map(String) : [];
+  if (reportedBy.includes(visitorId)) return;
+  await comments.updateOne(
+    { _id: new ObjectId(id) },
+    {
+      $addToSet: { reportedBy: visitorId },
+      $set: {
+        updatedAt: new Date().toISOString(),
+        ...(reportedBy.length + 1 >= 2 ? { status: "reported" } : {}),
+      },
+    },
+  );
+  revalidateMovie(slug);
+}
+
+export async function moderateCommentAction(formData: FormData) {
+  await requireAdmin();
+  const id = field(formData, "commentId");
+  const slug = normalizeSlug(field(formData, "slug"));
+  const status = field(formData, "status");
+  if (!ObjectId.isValid(id) || !slug || !["approved", "hidden"].includes(status)) return;
+
+  const comments = await getCommentsCollection();
+  await comments.updateOne(
+    { _id: new ObjectId(id), movieSlug: slug },
+    { $set: { status, reportedBy: [], updatedAt: new Date().toISOString() } },
+  );
+  revalidateMovie(slug);
+}
+
 export async function deleteCommentAction(formData: FormData) {
   await requireAdmin();
   const id = field(formData, "commentId");
@@ -480,7 +564,10 @@ export async function deleteCommentAction(formData: FormData) {
   if (!ObjectId.isValid(id) || !slug) return;
 
   const comments = await getCommentsCollection();
-  await comments.deleteOne({ _id: new ObjectId(id), movieSlug: slug });
+  await comments.deleteMany({
+    movieSlug: slug,
+    $or: [{ _id: new ObjectId(id) }, { parentId: id }],
+  });
   revalidateMovie(slug, movieId);
 }
 

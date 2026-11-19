@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Film, LayoutDashboard, LogOut, Pin, Sparkles, Tags, Type } from "lucide-react";
+import { Film, LayoutDashboard, LogOut, MessageSquare, Pin, Sparkles, Tags, Type } from "lucide-react";
 import { logoutAction } from "@/lib/actions";
 
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/movies", label: "Filime", icon: Film },
   { href: "/admin/genres", label: "Ibyiciro", icon: Tags },
   { href: "/admin/words", label: "Amagambo", icon: Type },
+  { href: "/admin/comments", label: "Comments", icon: MessageSquare },
   { href: "/admin/pin-comment", label: "Pin comment", icon: Pin },
 ];
 

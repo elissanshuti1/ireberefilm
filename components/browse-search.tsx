@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export default function BrowseSearch({
   initialQuery,
@@ -14,29 +14,34 @@ export default function BrowseSearch({
   placeholder: string;
 }) {
   const router = useRouter();
+  const current = useSearchParams();
   const [value, setValue] = useState(initialQuery);
+
+  const target = useCallback(
+    (text: string) => {
+      const params = new URLSearchParams(current.toString());
+      const trimmed = text.trim();
+      if (trimmed) params.set("q", trimmed);
+      else params.delete("q");
+      if (genre !== "Zose") params.set("genre", genre);
+      else params.delete("genre");
+      const search = params.toString();
+      return `/browse${search ? `?${search}` : ""}`;
+    },
+    [current, genre],
+  );
 
   useEffect(() => {
     if (value.trim() === initialQuery.trim()) return;
     const timer = window.setTimeout(() => {
-      const params = new URLSearchParams();
-      const trimmed = value.trim();
-      if (trimmed) params.set("q", trimmed);
-      if (genre !== "Zose") params.set("genre", genre);
-      const search = params.toString();
-      router.replace(`/browse${search ? `?${search}` : ""}`, { scroll: false });
+      router.replace(target(value), { scroll: false });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [value, genre, initialQuery, router]);
+  }, [value, initialQuery, router, target]);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    const params = new URLSearchParams();
-    const trimmed = value.trim();
-    if (trimmed) params.set("q", trimmed);
-    if (genre !== "Zose") params.set("genre", genre);
-    const search = params.toString();
-    router.replace(`/browse${search ? `?${search}` : ""}`, { scroll: false });
+    router.replace(target(value), { scroll: false });
   };
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 
 export default function GenreFilter({
@@ -12,19 +13,21 @@ export default function GenreFilter({
   active: string;
   query: string;
 }) {
-  const params = new URLSearchParams();
-  if (query) params.set("q", query);
-  if (active !== "Zose") params.set("genre", active);
-  const suffix = params.toString();
+  const current = useSearchParams();
+  const targetFor = (genre: string) => {
+    const params = new URLSearchParams(current.toString());
+    if (query) params.set("q", query);
+    else params.delete("q");
+    if (genre !== "Zose") params.set("genre", genre);
+    else params.delete("genre");
+    return `/browse${params.size ? `?${params}` : ""}`;
+  };
 
   return (
     <div className="mask-fade-x -mx-5 flex gap-2 overflow-x-auto px-5 py-2 sm:mx-0 sm:px-0">
       {genres.map((genre) => {
         const isActive = genre === active;
-        const targetParams = new URLSearchParams();
-        if (query) targetParams.set("q", query);
-        if (genre !== "Zose") targetParams.set("genre", genre);
-        const target = `/browse${targetParams.size ? `?${targetParams}` : ""}`;
+        const target = targetFor(genre);
 
         return (
           <Link
@@ -45,7 +48,6 @@ export default function GenreFilter({
           </Link>
         );
       })}
-      {suffix && <span className="sr-only">Filteri: {suffix}</span>}
     </div>
   );
 }

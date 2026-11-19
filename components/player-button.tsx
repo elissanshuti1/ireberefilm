@@ -13,10 +13,12 @@ export default function PlayerButton({
   movie,
   label = "Tangira Kureba",
   subtitle,
+  progressLabel,
 }: {
   movie: WatchData;
   label?: string;
   subtitle?: string;
+  progressLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [started, setStarted] = useState(false);
@@ -46,6 +48,7 @@ export default function PlayerButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        data-watch-episode={progressLabel}
         className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-gold px-8 py-4 text-sm font-extrabold text-ink shadow-[0_20px_60px_-22px_rgba(247,183,51,0.95)] transition-transform duration-300 hover:scale-[1.04]"
       >
         <span className="pulse-ring absolute inset-0 rounded-full bg-white/30" />

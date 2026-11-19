@@ -29,6 +29,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/admin"
             <Link href="/admin/movies" className="text-white/55">Filime</Link>
             <Link href="/admin/genres" className="text-white/55">Ibyiciro</Link>
             <Link href="/admin/words" className="text-white/55">Amagambo</Link>
+            <Link href="/admin/comments" className="text-white/55">Comments</Link>
             <Link href="/admin/pin-comment" className="text-gold">Pin</Link>
             <form action={logoutAction}>
               <button type="submit" aria-label="Sohoka" className="grid size-8 place-items-center rounded-lg border border-white/10 text-rose-300">

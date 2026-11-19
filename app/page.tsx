@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Play, Sparkles } from "lucide-react";
+import ContinueWatching from "@/components/continue-watching";
 import HeroCarousel from "@/components/hero-carousel";
 import JsonLd from "@/components/json-ld";
 import Marquee from "@/components/marquee";
@@ -92,6 +93,7 @@ export default async function Home() {
       <HeroCarousel movies={heroMovies} ctaLabel={settings.heroCta} secondaryLabel={settings.heroSecondary} />
       <Marquee />
       <Stats moviesCount={allMovies.length} genresCount={genres.length} />
+      <ContinueWatching />
 
       <section id="filime-nshya" className="relative overflow-hidden py-24 sm:py-32">
         <div className="pointer-events-none absolute top-10 left-1/4 size-80 rounded-full bg-violet/10 orb" />

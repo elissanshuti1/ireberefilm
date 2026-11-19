@@ -17,6 +17,7 @@ import type {
   AnalyticsEventRecord,
   AnalyticsSummary,
   CommentRecord,
+  CommentView,
   GenreRecord,
   GlobalComment,
   MovieAnalyticsSummary,
@@ -78,6 +79,61 @@ export async function getCommentsBySlug(slug: string, limit = 0): Promise<Commen
   return docs.map((doc) => serializeComment(doc as Record<string, unknown>));
 }
 
+export async function getCommentViewsBySlug(
+  slug: string,
+  visitorId: string | null,
+): Promise<CommentView[]> {
+  const comments = (await getCommentsBySlug(slug)).filter(
+    (comment) => comment.status !== "hidden",
+  );
+  const views = new Map<string, CommentView>();
+
+  for (const comment of comments) {
+    views.set(comment.id, {
+      id: comment.id,
+      movieSlug: comment.movieSlug,
+      name: comment.name,
+      message: comment.message,
+      pinned: comment.pinned,
+      authorRole: comment.authorRole,
+      status: comment.status,
+      parentId: comment.parentId,
+      createdAt: comment.createdAt,
+      likeCount: comment.likedBy.length,
+      likedByMe: Boolean(visitorId && comment.likedBy.includes(visitorId)),
+      reportedByMe: Boolean(visitorId && comment.reportedBy.includes(visitorId)),
+      replies: [],
+    });
+  }
+
+  const roots: CommentView[] = [];
+  for (const comment of comments) {
+    const view = views.get(comment.id);
+    if (!view) continue;
+    const parent = comment.parentId ? views.get(comment.parentId) : undefined;
+    if (parent) parent.replies.push(view);
+    else roots.push(view);
+  }
+
+  for (const view of views.values()) {
+    view.replies.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }
+
+  return roots.sort(
+    (a, b) =>
+      Number(b.pinned) - Number(a.pinned) ||
+      b.likeCount - a.likeCount ||
+      b.createdAt.localeCompare(a.createdAt),
+  );
+}
+
+export async function getReportedComments(): Promise<CommentRecord[]> {
+  if (!process.env.MONGODB_URI) return [];
+  const collection = await getCommentsCollection();
+  const docs = await collection.find({ status: "reported" }).sort({ createdAt: -1 }).toArray();
+  return docs.map((doc) => serializeComment(doc as Record<string, unknown>));
+}
+
 export async function getAllComments(): Promise<CommentRecord[]> {
   if (!process.env.MONGODB_URI) return [];
   const collection = await getCommentsCollection();
@@ -120,6 +176,7 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
   let visits = 0;
   let movieViews = 0;
   let movieClicks = 0;
+  let playbackErrors = 0;
   let todayVisits = 0;
 
   for (const event of events) {
@@ -146,9 +203,11 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
     } else if (event.type === "movie_view") {
       movieViews += 1;
       visitor.movieViews += 1;
-    } else {
+    } else if (event.type === "movie_click") {
       movieClicks += 1;
       visitor.clicks += 1;
+    } else {
+      playbackErrors += 1;
     }
 
     visitors.set(visitorKey, visitor);
@@ -171,6 +230,7 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
     uniqueVisitors: visitors.size,
     movieViews,
     movieClicks,
+    playbackErrors,
     todayVisits,
     visitors: [...visitors.values()]
       .sort((a, b) => b.lastSeen.localeCompare(a.lastSeen))
@@ -193,9 +253,16 @@ export async function getNewMovies(limit = 8): Promise<PublicMovie[]> {
 }
 
 export async function getPopularMovies(limit = 6): Promise<PublicMovie[]> {
-  const movies = await getPublicMovies();
+  const [movies, analytics] = await Promise.all([getPublicMovies(), getAnalyticsSummary()]);
+  const scores = new Map(analytics.movies.map((item) => [item.slug, item.views * 2 + item.clicks]));
   return [...movies]
-    .sort((a, b) => Number(b.rating) - Number(a.rating))
+    .sort((a, b) => {
+      const scoreDifference = (scores.get(b.slug) ?? 0) - (scores.get(a.slug) ?? 0);
+      if (scoreDifference !== 0) return scoreDifference;
+      const ratingDifference = Number(b.rating) - Number(a.rating);
+      if (ratingDifference !== 0) return ratingDifference;
+      return (b.createdAt ?? "").localeCompare(a.createdAt ?? "");
+    })
     .slice(0, limit);
 }
 
@@ -251,12 +318,24 @@ export async function getDashboardStats() {
   };
 }
 
-export async function filterPublicMovies(query: string, genre: string): Promise<PublicMovie[]> {
-  const movies = await getPublicMovies();
+export type MovieFilterOptions = {
+  kind?: string;
+  year?: string;
+  creator?: string;
+  sort?: string;
+};
+
+export async function filterPublicMovies(
+  query: string,
+  genre: string,
+  options: MovieFilterOptions = {},
+): Promise<PublicMovie[]> {
+  const [movies, names] = await Promise.all([getPublicMovies(), getGenres().then((items) => items.map((item) => item.name))]);
   const q = query.trim().toLowerCase();
-  const names = (await getGenres()).map((item) => item.name);
   const validGenre = names.includes(genre) ? genre : "Zose";
-  return movies.filter((movie) => {
+  const kind = options.kind ?? "all";
+  const sort = options.sort ?? "latest";
+  const filtered = movies.filter((movie) => {
     const matchesGenre = validGenre === "Zose" || movie.genre === validGenre;
     const matchesQuery =
       !q ||
@@ -264,6 +343,26 @@ export async function filterPublicMovies(query: string, genre: string): Promise<
       movie.originalTitle.toLowerCase().includes(q) ||
       movie.creator.toLowerCase().includes(q) ||
       movie.genre.toLowerCase().includes(q);
-    return matchesGenre && matchesQuery;
+    const matchesKind =
+      kind === "all" ||
+      (kind === "season" && movie.isSeason) ||
+      (kind === "part" && movie.hasParts && !movie.isSeason) ||
+      (kind === "movie" && !movie.isSeason && !movie.hasParts);
+    const matchesYear = !options.year || String(movie.year) === options.year;
+    const matchesCreator = !options.creator || movie.creator === options.creator;
+    return matchesGenre && matchesQuery && matchesKind && matchesYear && matchesCreator;
   });
+
+  if (sort === "title") {
+    return filtered.sort((a, b) => a.title.localeCompare(b.title));
+  }
+  if (sort === "rating") {
+    return filtered.sort((a, b) => Number(b.rating) - Number(a.rating));
+  }
+  if (sort === "popular") {
+    const analytics = await getAnalyticsSummary();
+    const scores = new Map(analytics.movies.map((item) => [item.slug, item.views * 2 + item.clicks]));
+    return filtered.sort((a, b) => (scores.get(b.slug) ?? 0) - (scores.get(a.slug) ?? 0));
+  }
+  return filtered;
 }

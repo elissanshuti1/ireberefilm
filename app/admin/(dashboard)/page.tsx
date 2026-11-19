@@ -27,6 +27,7 @@ const activityLabels: Record<AnalyticsEventRecord["type"], string> = {
   page_view: "Gusura urubuga",
   movie_view: "Kureba filime",
   movie_click: "Gukanda kuri filime",
+  playback_error: "Isano ntibyabaye",
 };
 
 function formatWhen(value: string) {
@@ -100,6 +101,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
             { label: "Abasuye batandukanye", value: analytics.uniqueVisitors, note: "Abakoresheje urubuga", icon: Users },
             { label: "Kureba filime", value: analytics.movieViews, note: "Igihe cyose", icon: Eye },
             { label: "Gukanda kuri filime", value: analytics.movieClicks, note: "Igihe cyose", icon: MousePointerClick },
+            { label: "Kubura kw&apos;isano", value: analytics.playbackErrors, note: "Raporo z&apos;abareba", icon: TriangleAlert },
           ].map((item) => (
             <div key={item.label} className="rounded-xl border border-white/10 bg-ink-3/50 p-4">
               <span className="grid size-9 place-items-center rounded-lg bg-gold/10 text-gold">

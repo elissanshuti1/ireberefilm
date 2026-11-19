@@ -54,7 +54,22 @@ export type CommentRecord = {
   message: string;
   pinned: boolean;
   authorRole: "admin" | "viewer";
+  visitorId: string;
+  parentId: string | null;
+  likedBy: string[];
+  reportedBy: string[];
+  status: "approved" | "reported" | "hidden";
   createdAt: string;
+};
+
+export type CommentView = Omit<
+  CommentRecord,
+  "visitorId" | "likedBy" | "reportedBy"
+> & {
+  likeCount: number;
+  likedByMe: boolean;
+  reportedByMe: boolean;
+  replies: CommentView[];
 };
 
 export type MovieSearchResult = {
@@ -70,7 +85,7 @@ export type MovieSearchResult = {
 export type AnalyticsEventRecord = {
   id: string;
   visitorId: string;
-  type: "page_view" | "movie_view" | "movie_click";
+  type: "page_view" | "movie_view" | "movie_click" | "playback_error";
   path: string;
   slug: string;
   title: string;
@@ -99,6 +114,7 @@ export type AnalyticsSummary = {
   uniqueVisitors: number;
   movieViews: number;
   movieClicks: number;
+  playbackErrors: number;
   todayVisits: number;
   visitors: VisitorSummary[];
   movies: MovieAnalyticsSummary[];

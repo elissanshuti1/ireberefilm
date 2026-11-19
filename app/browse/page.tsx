@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { SlidersHorizontal, Sparkles } from "lucide-react";
+import BrowseFilters from "@/components/browse-filters";
+import BrowseResults from "@/components/browse-results";
 import BrowseSearch from "@/components/browse-search";
 import GenreFilter from "@/components/genre-filter";
-import MovieCard from "@/components/movie-card";
 import Reveal from "@/components/reveal";
-import { filterPublicMovies, getGenres, getSettings } from "@/lib/data";
+import { filterPublicMovies, getGenres, getPublicMovies, getSettings } from "@/lib/data";
 import { toMovieViews } from "@/lib/view";
 
 export const dynamic = "force-dynamic";
@@ -18,14 +19,28 @@ export const metadata: Metadata = {
 
 export default async function BrowsePage({ searchParams }: PageProps<"/browse">) {
   const params = await searchParams;
-  const query = typeof params.q === "string" ? params.q : "";
-  const [genres, settings] = await Promise.all([getGenres(), getSettings()]);
+  const value = (key: string) => (typeof params[key] === "string" ? (params[key] as string) : "");
+  const query = value("q");
+  const [genres, settings, allMovies] = await Promise.all([
+    getGenres(),
+    getSettings(),
+    getPublicMovies(),
+  ]);
   const genreNames = ["Zose", ...genres.map((genre) => genre.name)];
-  const requestedGenre = typeof params.genre === "string" ? params.genre : "Zose";
+  const requestedGenre = value("genre") || "Zose";
   const genre = genreNames.includes(requestedGenre) ? requestedGenre : "Zose";
-  const results = await filterPublicMovies(query, genre);
+  const kind = value("kind") || "all";
+  const year = value("year") || "all";
+  const creator = value("creator") || "all";
+  const sort = value("sort") || "latest";
+  const watchlistOnly = value("watchlist") === "1";
+  const results = await filterPublicMovies(query, genre, { kind, year, creator, sort });
   const colors = Object.fromEntries(genres.map((item) => [item.name, item.color]));
   const movies = toMovieViews(results, colors);
+  const years = Array.from(new Set(allMovies.map((movie) => movie.year).filter(Boolean))).sort(
+    (a, b) => b - a,
+  );
+  const creators = Array.from(new Set(allMovies.map((movie) => movie.creator).filter(Boolean))).sort();
 
   return (
     <main className="relative min-h-screen overflow-hidden pt-[76px]">
@@ -65,38 +80,17 @@ export default async function BrowsePage({ searchParams }: PageProps<"/browse">)
           <GenreFilter genres={genreNames} active={genre} query={query} />
         </Reveal>
 
-        <div className="mt-8 flex items-center justify-between text-sm text-white/40">
-          <p>
-            <span className="font-bold text-white">{results.length}</span> filime ziboneka
-          </p>
-          {(query || genre !== "Zose") && (
-            <p className="text-gold">
-              {genre !== "Zose" ? genre : ""}
-              {genre !== "Zose" && query ? " · " : ""}
-              {query ? `“${query}”` : ""}
-            </p>
-          )}
-        </div>
+        <BrowseFilters
+          years={years}
+          creators={creators}
+          kind={kind}
+          year={year}
+          creator={creator}
+          sort={sort}
+          watchlistOnly={watchlistOnly}
+        />
 
-        {movies.length > 0 ? (
-          <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-5">
-            {movies.map((movie, index) => (
-              <MovieCard key={movie.slug} movie={movie} index={index} />
-            ))}
-          </div>
-        ) : (
-          <Reveal className="mt-10">
-            <div className="glass-soft flex flex-col items-center rounded-3xl px-6 py-20 text-center">
-              <span className="grid size-20 place-items-center rounded-3xl bg-gold/10 text-gold">
-                <Search className="size-8" />
-              </span>
-              <h2 className="font-display mt-6 text-2xl font-extrabold">Nta filime yaboneka</h2>
-              <p className="mt-3 max-w-sm text-sm leading-7 text-white/45">
-                Gerageza izindi jambo, cyangwa hitamo icyiciro gitandukanye.
-              </p>
-            </div>
-          </Reveal>
-        )}
+        <BrowseResults movies={movies} watchlistOnly={watchlistOnly} />
       </section>
     </main>
   );

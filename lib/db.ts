@@ -48,7 +48,7 @@ export async function getSettingsCollection() {
 export async function getCommentsCollection() {
   const db = await getDb();
   const collection = db.collection("comments");
-  await collection.createIndex({ movieSlug: 1, pinned: -1, createdAt: -1 });
+  await collection.createIndex({ movieSlug: 1, parentId: 1, pinned: -1, createdAt: -1 });
   return collection;
 }
 
@@ -83,7 +83,12 @@ function serializeEpisode(doc: Record<string, unknown>, index: number): EpisodeR
 }
 
 export function serializeAnalyticsEvent(doc: Record<string, unknown>): AnalyticsEventRecord {
-  const type = doc.type === "movie_view" || doc.type === "movie_click" ? doc.type : "page_view";
+  const type =
+    doc.type === "movie_view" ||
+    doc.type === "movie_click" ||
+    doc.type === "playback_error"
+      ? doc.type
+      : "page_view";
   return {
     id: toId(doc._id),
     visitorId: String(doc.visitorId ?? ""),
@@ -97,6 +102,7 @@ export function serializeAnalyticsEvent(doc: Record<string, unknown>): Analytics
 }
 
 export function serializeComment(doc: Record<string, unknown>): CommentRecord {
+  const status = doc.status === "reported" || doc.status === "hidden" ? doc.status : "approved";
   return {
     id: toId(doc._id),
     movieSlug: String(doc.movieSlug ?? ""),
@@ -104,6 +110,11 @@ export function serializeComment(doc: Record<string, unknown>): CommentRecord {
     message: String(doc.message ?? ""),
     pinned: Boolean(doc.pinned),
     authorRole: doc.authorRole === "admin" ? "admin" : "viewer",
+    visitorId: String(doc.visitorId ?? ""),
+    parentId: doc.parentId ? String(doc.parentId) : null,
+    likedBy: Array.isArray(doc.likedBy) ? doc.likedBy.map(String) : [],
+    reportedBy: Array.isArray(doc.reportedBy) ? doc.reportedBy.map(String) : [],
+    status,
     createdAt: String(doc.createdAt ?? new Date().toISOString()),
   };
 }
