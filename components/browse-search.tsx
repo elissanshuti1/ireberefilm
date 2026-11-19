@@ -47,20 +47,20 @@ export default function BrowseSearch({
   return (
     <form
       onSubmit={submit}
-      className="glass group flex items-center gap-4 rounded-2xl p-2 pl-5 transition-all focus-within:border-gold/50"
+      className="glass group flex items-center gap-2 rounded-xl p-1.5 pl-3 transition-all focus-within:border-gold/50"
     >
-      <Search className="size-5 shrink-0 text-gold" />
+      <Search className="size-4 shrink-0 text-gold" />
       <input
         type="search"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder={placeholder}
         aria-label="Shakisha filime"
-        className="w-full bg-transparent py-4 text-base text-white outline-none placeholder:text-white/30"
+        className="w-full bg-transparent py-2 text-sm text-white outline-none placeholder:text-white/30"
       />
       <button
         type="submit"
-        className="shrink-0 rounded-xl bg-gold px-6 py-3.5 text-sm font-extrabold text-ink transition-transform hover:scale-105"
+        className="shrink-0 rounded-lg bg-gold px-4 py-2 text-xs font-extrabold text-ink transition-transform hover:scale-105"
       >
         Shakisha
       </button>
