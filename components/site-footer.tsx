@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, Film, Heart, Play, Sparkles } from "lucide-react";
+import { whatsappUrl } from "@/lib/whatsapp";
 
 const columns = [
   {
@@ -23,10 +24,18 @@ const columns = [
 export default function SiteFooter({
   footerText = "Agasobanuye kose, ahantu hamwe. Duhuza abakunda filime z'isi yose zisobanurwa mu Kinyarwanda n'abatangiza zidateganyijwe.",
   contactEmail = "ubufatanye@ireberefilm.rw",
+  advertiseLabel = "Ushaka kwamamaza",
+  advertiseWhatsappNumber = "",
+  advertiseWhatsappMessage = "",
 }: {
   footerText?: string;
   contactEmail?: string;
+  advertiseLabel?: string;
+  advertiseWhatsappNumber?: string;
+  advertiseWhatsappMessage?: string;
 }) {
+  const advertiseHref = whatsappUrl(advertiseWhatsappNumber, advertiseWhatsappMessage);
+
   return (
     <footer className="noise relative overflow-hidden border-t border-white/10 bg-ink-2">
       <div className="aurora aurora-fade pointer-events-none absolute inset-0 opacity-40" />
@@ -74,6 +83,20 @@ export default function SiteFooter({
                     </Link>
                   </li>
                 ))}
+                {column.title === "Urubuga" && advertiseHref && (
+                  <li>
+                    <a
+                      href={advertiseHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group inline-flex items-center gap-2 text-sm font-bold text-gold transition-colors hover:text-white"
+                    >
+                      <span className="h-px w-0 bg-gold transition-all duration-300 group-hover:w-4" />
+                      {advertiseLabel}
+                      <ArrowUpRight className="size-3.5" />
+                    </a>
+                  </li>
+                )}
               </ul>
             </div>
           ))}

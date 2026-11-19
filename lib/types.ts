@@ -147,4 +147,7 @@ export type SiteSettings = {
   aboutIntro: string;
   footerText: string;
   contactEmail: string;
+  advertiseLabel: string;
+  advertiseWhatsappNumber: string;
+  advertiseWhatsappMessage: string;
 };

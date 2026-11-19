@@ -21,6 +21,9 @@ const fields: { key: keyof SiteSettings; label: string; hint?: string; area?: bo
   { key: "aboutIntro", label: "Ibyerekeye (About)", area: true },
   { key: "footerText", label: "Ijambo rya footer", area: true },
   { key: "contactEmail", label: "Email yo kuvugana" },
+  { key: "advertiseLabel", label: "Button ya kwamamaza" },
+  { key: "advertiseWhatsappNumber", label: "Nimero ya WhatsApp yo kwamamaza" },
+  { key: "advertiseWhatsappMessage", label: "Ubutumwa bwa mbere kuri WhatsApp", area: true },
 ];
 
 export default function WordsForm({ settings }: { settings: SiteSettings }) {

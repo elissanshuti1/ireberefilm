@@ -15,6 +15,7 @@ import {
 import { deletePoster, uploadPoster } from "@/lib/images";
 import { normalizeSlug } from "@/lib/slug";
 import { getOrCreateVisitorId } from "@/lib/visitor";
+import { isValidWhatsAppNumber } from "@/lib/whatsapp";
 import type { ActionState } from "@/lib/action-state";
 import type { EpisodeRecord } from "@/lib/types";
 
@@ -363,9 +364,20 @@ export async function saveSettingsAction(
     "aboutIntro",
     "footerText",
     "contactEmail",
+    "advertiseLabel",
+    "advertiseWhatsappNumber",
+    "advertiseWhatsappMessage",
   ];
+  const advertiseWhatsappNumber = field(formData, "advertiseWhatsappNumber").trim();
+  if (advertiseWhatsappNumber && !isValidWhatsAppNumber(advertiseWhatsappNumber)) {
+    return { ok: false, message: "Andika nimero ya WhatsApp mu buryo bw'ukuri" };
+  }
   const document: Record<string, string> = { key: "site" };
   for (const key of keys) document[key] = field(formData, key);
+  document.advertiseLabel = field(formData, "advertiseLabel").trim() || "Ushaka kwamamaza";
+  document.advertiseWhatsappMessage =
+    field(formData, "advertiseWhatsappMessage").trim() ||
+    "Muraho, nshaka kwamamaza kuri ireberefilm. Nshobora kuvugana namwe hano.";
   const collection = await getSettingsCollection();
   await collection.updateOne({ key: "site" }, { $set: document }, { upsert: true });
   revalidatePublic();

@@ -300,6 +300,13 @@ export async function getSettings(): Promise<SiteSettings> {
       aboutIntro: String(data.aboutIntro ?? defaultSettings.aboutIntro),
       footerText: String(data.footerText ?? defaultSettings.footerText),
       contactEmail: String(data.contactEmail ?? defaultSettings.contactEmail),
+      advertiseLabel: String(data.advertiseLabel ?? defaultSettings.advertiseLabel),
+      advertiseWhatsappNumber: String(
+        data.advertiseWhatsappNumber ?? defaultSettings.advertiseWhatsappNumber,
+      ),
+      advertiseWhatsappMessage: String(
+        data.advertiseWhatsappMessage ?? defaultSettings.advertiseWhatsappMessage,
+      ),
     };
   } catch {
     return defaultSettings;

@@ -87,6 +87,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           searchPlaceholder={settings.searchPlaceholder}
           footerText={settings.footerText}
           contactEmail={settings.contactEmail}
+          advertiseLabel={settings.advertiseLabel}
+          advertiseWhatsappNumber={settings.advertiseWhatsappNumber}
+          advertiseWhatsappMessage={settings.advertiseWhatsappMessage}
         >
           {children}
         </SiteChrome>

@@ -13,4 +13,8 @@ export const defaultSettings: SiteSettings = {
     "Dukunda Agasobanuye. Dukunda uko ruvuga ibintu bikomeye mu buryo bworoshye, kandi tuzi ko filime z'Abanyamerika, Abahinde n'izindi za cinema y'isi ziba izacu niba zivugwa mu Kinyarwanda.",
   footerText: "Agasobanuye kose, ahantu hamwe. Filime z'isi yose mu Kinyarwanda.",
   contactEmail: "ubufatanye@ireberefilm.rw",
+  advertiseLabel: "Ushaka kwamamaza",
+  advertiseWhatsappNumber: "+250792725115",
+  advertiseWhatsappMessage:
+    "Muraho, nshaka kwamamaza kuri ireberefilm. Nshobora kuvugana namwe hano.",
 };

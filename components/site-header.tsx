@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowUpRight, Menu, Play, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { MovieSearchResult } from "@/lib/types";
+import { whatsappUrl } from "@/lib/whatsapp";
 
 const links = [
   { href: "/", label: "Iburanga" },
@@ -17,8 +18,14 @@ const links = [
 
 export default function SiteHeader({
   searchPlaceholder = "Shakisha filime, izina, cyangwa umusobanuzi...",
+  advertiseLabel = "Ushaka kwamamaza",
+  advertiseWhatsappNumber = "",
+  advertiseWhatsappMessage = "",
 }: {
   searchPlaceholder?: string;
+  advertiseLabel?: string;
+  advertiseWhatsappNumber?: string;
+  advertiseWhatsappMessage?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -114,6 +121,8 @@ export default function SiteHeader({
     closeSearch();
   };
 
+  const advertiseHref = whatsappUrl(advertiseWhatsappNumber, advertiseWhatsappMessage);
+
   const onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "ArrowDown" && results.length > 0) {
       event.preventDefault();
@@ -197,13 +206,17 @@ export default function SiteHeader({
             >
               <Search className="size-[18px] transition-transform duration-300 group-hover:scale-110" />
             </button>
-            <Link
-              href="/browse"
-              className="hidden items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-ink transition-all duration-300 hover:gap-3 hover:bg-gold sm:flex"
-            >
-              Reba Filime
-              <ArrowUpRight className="size-4" />
-            </Link>
+            {advertiseHref && (
+              <a
+                href={advertiseHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-bold text-ink transition-all duration-300 hover:gap-3 hover:bg-gold sm:flex"
+              >
+                {advertiseLabel}
+                <ArrowUpRight className="size-4" />
+              </a>
+            )}
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
@@ -246,6 +259,21 @@ export default function SiteHeader({
                   </Link>
                 </motion.div>
               ))}
+              {advertiseHref && (
+                <motion.a
+                  href={advertiseHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.06 * links.length, ease: [0.22, 1, 0.36, 1] }}
+                  className="font-display mt-4 inline-flex items-center gap-3 self-start rounded-full bg-white px-6 py-3 text-base font-extrabold text-ink"
+                >
+                  {advertiseLabel}
+                  <ArrowUpRight className="size-5" />
+                </motion.a>
+              )}
               <p className="mt-10 text-sm text-white/40">Agasobanuye mu Kinyarwanda · ireberefilm</p>
             </div>
           </motion.div>

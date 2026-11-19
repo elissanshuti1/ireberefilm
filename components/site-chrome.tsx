@@ -9,9 +9,20 @@ type Props = {
   searchPlaceholder?: string;
   footerText?: string;
   contactEmail?: string;
+  advertiseLabel?: string;
+  advertiseWhatsappNumber?: string;
+  advertiseWhatsappMessage?: string;
 };
 
-export default function SiteChrome({ children, searchPlaceholder, footerText, contactEmail }: Props) {
+export default function SiteChrome({
+  children,
+  searchPlaceholder,
+  footerText,
+  contactEmail,
+  advertiseLabel,
+  advertiseWhatsappNumber,
+  advertiseWhatsappMessage,
+}: Props) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
 
@@ -19,9 +30,20 @@ export default function SiteChrome({ children, searchPlaceholder, footerText, co
 
   return (
     <>
-      <SiteHeader searchPlaceholder={searchPlaceholder} />
+      <SiteHeader
+        searchPlaceholder={searchPlaceholder}
+        advertiseLabel={advertiseLabel}
+        advertiseWhatsappNumber={advertiseWhatsappNumber}
+        advertiseWhatsappMessage={advertiseWhatsappMessage}
+      />
       <div className="flex-1">{children}</div>
-      <SiteFooter footerText={footerText} contactEmail={contactEmail} />
+      <SiteFooter
+        footerText={footerText}
+        contactEmail={contactEmail}
+        advertiseLabel={advertiseLabel}
+        advertiseWhatsappNumber={advertiseWhatsappNumber}
+        advertiseWhatsappMessage={advertiseWhatsappMessage}
+      />
     </>
   );
 }
