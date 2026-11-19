@@ -144,9 +144,11 @@ export default async function Home() {
               Nta season iboneka ubu.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="mask-fade-x -mx-5 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-8 sm:mx-0 sm:px-0">
               {seasonViews.map((movie, index) => (
-                <MovieCard key={movie.slug} movie={movie} index={index} />
+                <div key={movie.slug} className="w-[58vw] shrink-0 snap-start sm:w-[38vw] lg:w-[23%]">
+                  <MovieCard movie={movie} index={index} />
+                </div>
               ))}
             </div>
           )}
