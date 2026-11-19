@@ -437,6 +437,8 @@ export async function filterPublicMovies(
   const q = query.trim().toLowerCase();
   const validGenre = names.includes(genre) ? genre : "Zose";
   const kind = options.kind ?? "all";
+  const year = options.year && options.year !== "all" ? options.year : "";
+  const creator = options.creator && options.creator !== "all" ? options.creator : "";
   const sort = options.sort ?? "latest";
   const filtered = movies.filter((movie) => {
     const matchesGenre = validGenre === "Zose" || movie.genre === validGenre;
@@ -451,8 +453,8 @@ export async function filterPublicMovies(
       (kind === "season" && movie.isSeason) ||
       (kind === "part" && movie.hasParts && !movie.isSeason) ||
       (kind === "movie" && !movie.isSeason && !movie.hasParts);
-    const matchesYear = !options.year || String(movie.year) === options.year;
-    const matchesCreator = !options.creator || movie.creator === options.creator;
+    const matchesYear = !year || String(movie.year) === year;
+    const matchesCreator = !creator || movie.creator === creator;
     return matchesGenre && matchesQuery && matchesKind && matchesYear && matchesCreator;
   });
 
