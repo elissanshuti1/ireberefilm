@@ -1,5 +1,13 @@
 import { MongoClient, ObjectId } from "mongodb";
+import {
+  defaultAdDurationSeconds,
+  isAdPlacement,
+  isAdPopupFrequency,
+  normalizeAdLink,
+} from "@/lib/ads";
 import type {
+  AdEventRecord,
+  AdRecord,
   AnalyticsEventRecord,
   CommentRecord,
   EpisodeRecord,
@@ -61,6 +69,21 @@ export async function getAnalyticsCollection() {
   return collection;
 }
 
+export async function getAdsCollection() {
+  const db = await getDb();
+  const collection = db.collection("ads");
+  await collection.createIndex({ active: 1, priority: -1, createdAt: -1 });
+  return collection;
+}
+
+export async function getAdEventsCollection() {
+  const db = await getDb();
+  const collection = db.collection("ad_events");
+  await collection.createIndex({ adId: 1, createdAt: -1 });
+  await collection.createIndex({ adId: 1, visitorId: 1, type: 1 });
+  return collection;
+}
+
 export async function getPostersBucket() {
   const db = await getDb();
   const { GridFSBucket } = await import("mongodb");
@@ -79,6 +102,47 @@ function serializeEpisode(doc: Record<string, unknown>, index: number): EpisodeR
     playback: doc.playback === "link" ? "link" : "embed",
     embedUrl: doc.embedUrl ? String(doc.embedUrl) : null,
     sourceUrl: String(doc.sourceUrl ?? ""),
+  };
+}
+
+export function serializeAd(doc: Record<string, unknown>): AdRecord {
+  const placements = Array.isArray(doc.placements)
+    ? doc.placements.map(String).filter(isAdPlacement)
+    : [];
+  const duration = Number(doc.durationSeconds ?? defaultAdDurationSeconds);
+  const frequency = String(doc.popupFrequency ?? "per_visit");
+  return {
+    id: toId(doc._id),
+    advertiser: String(doc.advertiser ?? ""),
+    title: String(doc.title ?? ""),
+    message: String(doc.message ?? ""),
+    imageId: doc.imageId ? toId(doc.imageId) : null,
+    link: normalizeAdLink(String(doc.link ?? "")),
+    ctaLabel: String(doc.ctaLabel ?? "Reba byinshi"),
+    placements,
+    active: Boolean(doc.active),
+    popupFrequency: isAdPopupFrequency(frequency) ? frequency : "per_visit",
+    durationSeconds: Number.isFinite(duration) ? Math.min(Math.max(Math.trunc(duration), 3), 120) : defaultAdDurationSeconds,
+    priority: Number(doc.priority ?? 0),
+    startAt: String(doc.startAt ?? ""),
+    endAt: String(doc.endAt ?? ""),
+    views: Number(doc.views ?? 0),
+    clicks: Number(doc.clicks ?? 0),
+    uniqueViews: Number(doc.uniqueViews ?? 0),
+    createdAt: String(doc.createdAt ?? new Date().toISOString()),
+    updatedAt: String(doc.updatedAt ?? new Date().toISOString()),
+  };
+}
+
+export function serializeAdEvent(doc: Record<string, unknown>): AdEventRecord {
+  return {
+    id: toId(doc._id),
+    adId: String(doc.adId ?? ""),
+    type: doc.type === "click" ? "click" : "view",
+    placement: String(doc.placement ?? ""),
+    visitorId: String(doc.visitorId ?? ""),
+    path: String(doc.path ?? "/"),
+    createdAt: String(doc.createdAt ?? new Date().toISOString()),
   };
 }
 

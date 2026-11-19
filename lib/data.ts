@@ -1,10 +1,14 @@
 import { ObjectId } from "mongodb";
+import { isAdActive } from "@/lib/ads";
 import {
+  getAdEventsCollection,
+  getAdsCollection,
   getAnalyticsCollection,
   getCommentsCollection,
   getGenresCollection,
   getMoviesCollection,
   getSettingsCollection,
+  serializeAd,
   serializeAnalyticsEvent,
   serializeComment,
   serializeGenre,
@@ -14,6 +18,8 @@ import { posterSrc } from "@/lib/poster";
 import { decodeParam, normalizeSlug } from "@/lib/slug";
 import { defaultSettings } from "@/lib/settings";
 import type {
+  AdPlacement,
+  AdRecord,
   AnalyticsEventRecord,
   AnalyticsSummary,
   CommentRecord,
@@ -158,6 +164,96 @@ export async function getGlobalPinnedComment(): Promise<GlobalComment | null> {
   } catch {
     return null;
   }
+}
+
+export async function getAllAds(): Promise<AdRecord[]> {
+  if (!process.env.MONGODB_URI) return [];
+  const adsCollection = await getAdsCollection();
+  const eventsCollection = await getAdEventsCollection();
+  const [docs, uniqueDocs] = await Promise.all([
+    adsCollection.find({}).sort({ priority: -1, createdAt: -1 }).toArray(),
+    eventsCollection
+      .aggregate<{ _id: string; count: number }>([
+        { $match: { type: "view" } },
+        { $group: { _id: { adId: "$adId", visitorId: "$visitorId" } } },
+        { $group: { _id: "$_id.adId", count: { $sum: 1 } } },
+      ])
+      .toArray(),
+  ]);
+  const uniqueViews = new Map(uniqueDocs.map((item) => [String(item._id), Number(item.count ?? 0)]));
+  return docs.map((doc) => {
+    const ad = serializeAd(doc as Record<string, unknown>);
+    return { ...ad, uniqueViews: uniqueViews.get(ad.id) ?? ad.uniqueViews };
+  });
+}
+
+export async function getAllActiveAds(): Promise<AdRecord[]> {
+  const ads = await getAllAds();
+  return ads.filter((ad) => isAdActive(ad));
+}
+
+export async function getActiveAdsForPlacement(
+  placement: AdPlacement,
+): Promise<AdRecord[]> {
+  const ads = await getAllAds();
+  return ads.filter((ad) => ad.placements.includes(placement) && isAdActive(ad));
+}
+
+export async function getAdById(id: string): Promise<AdRecord | null> {
+  if (!process.env.MONGODB_URI || !ObjectId.isValid(id)) return null;
+  const collection = await getAdsCollection();
+  const doc = await collection.findOne({ _id: new ObjectId(id) });
+  return doc ? serializeAd(doc as Record<string, unknown>) : null;
+}
+
+export async function recordAdEvent({
+  adId,
+  type,
+  placement,
+  visitorId,
+  path,
+}: {
+  adId: string;
+  type: "view" | "click";
+  placement: string;
+  visitorId: string;
+  path: string;
+}) {
+  if (!process.env.MONGODB_URI || !ObjectId.isValid(adId)) return false;
+  const ads = await getAdsCollection();
+  const id = new ObjectId(adId);
+  const ad = await ads.findOne({ _id: id });
+  if (!ad) return false;
+
+  const events = await getAdEventsCollection();
+  const now = new Date();
+  if (type === "view" && visitorId) {
+    const recent = await events.findOne({
+      adId,
+      visitorId,
+      type: "view",
+      placement,
+      createdAt: { $gte: new Date(now.getTime() - 5000).toISOString() },
+    });
+    if (recent) return true;
+  }
+
+  await events.insertOne({
+    adId,
+    type,
+    placement,
+    visitorId,
+    path: path.slice(0, 300),
+    createdAt: now.toISOString(),
+  });
+  await ads.updateOne(
+    { _id: id },
+    {
+      $inc: { [type === "click" ? "clicks" : "views"]: 1 },
+      $set: { updatedAt: now.toISOString() },
+    },
+  );
+  return true;
 }
 
 export async function getAnalyticsEvents(limit = 0): Promise<AnalyticsEventRecord[]> {

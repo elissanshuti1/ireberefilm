@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowUpRight, Clock, ExternalLink, Film, Layers, Play, Sparkles, Star, UserRound } from "lucide-react";
+import AdPopup from "@/components/ad-popup";
 import CommentSection from "@/components/comment-section";
 import JsonLd from "@/components/json-ld";
 import MovieCard from "@/components/movie-card";
@@ -13,6 +14,7 @@ import SectionHeading from "@/components/section-heading";
 import WatchButton from "@/components/watch-button";
 import WatchFallback from "@/components/watch-fallback";
 import {
+  getActiveAdsForPlacement,
   getCommentViewsBySlug,
   getGenres,
   getGlobalPinnedComment,
@@ -70,11 +72,12 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
   const movie = await getMovieBySlug(slug);
   if (!movie) notFound();
   const visitorId = await readVisitorId();
-  const [allMovies, genres, comments, globalComment] = await Promise.all([
+  const [allMovies, genres, comments, globalComment, popupAds] = await Promise.all([
     getPublicMovies(),
     getGenres(),
     getCommentViewsBySlug(movie.slug, visitorId),
     getGlobalPinnedComment(),
+    getActiveAdsForPlacement("movie_popup"),
   ]);
 
   const colors = Object.fromEntries(genres.map((genre) => [genre.name, genre.color]));
@@ -132,6 +135,7 @@ export default async function MoviePage({ params }: PageProps<"/movies/[slug]">)
   return (
     <main className="relative overflow-hidden pt-[76px]">
       <JsonLd data={movieSchema} />
+      <AdPopup ad={popupAds[0] ?? null} slug={movie.slug} />
       <ProgressRecorder movie={libraryMovie} />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[880px]">
         <div

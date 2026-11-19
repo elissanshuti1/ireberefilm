@@ -92,6 +92,7 @@ export default async function Home() {
       <JsonLd data={listSchema} />
       <HeroCarousel movies={heroMovies} ctaLabel={settings.heroCta} secondaryLabel={settings.heroSecondary} />
       <Marquee />
+
       <Stats moviesCount={allMovies.length} genresCount={genres.length} />
       <ContinueWatching />
 
@@ -131,6 +132,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
 
       <section id="season" className="relative overflow-hidden border-t border-white/[0.06] bg-ink-2/40 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">

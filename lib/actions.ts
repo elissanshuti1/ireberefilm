@@ -5,19 +5,22 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ObjectId } from "mongodb";
 import { requireAdmin, verifyAdminPassword, adminCookieName, createSessionToken } from "@/lib/auth";
+import { normalizeAdLink } from "@/lib/ads";
 import {
+  getAdsCollection,
   getCommentsCollection,
   getGenresCollection,
   getMoviesCollection,
   getSettingsCollection,
   getPostersBucket,
+  toId,
 } from "@/lib/db";
 import { deletePoster, uploadPoster } from "@/lib/images";
 import { normalizeSlug } from "@/lib/slug";
 import { getOrCreateVisitorId } from "@/lib/visitor";
 import { isValidWhatsAppNumber } from "@/lib/whatsapp";
 import type { ActionState } from "@/lib/action-state";
-import type { EpisodeRecord } from "@/lib/types";
+import type { AdPlacement, EpisodeRecord } from "@/lib/types";
 
 function field(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -382,6 +385,102 @@ export async function saveSettingsAction(
   await collection.updateOne({ key: "site" }, { $set: document }, { upsert: true });
   revalidatePublic();
   return { ok: true, message: "Amagambo yabikiwe" };
+}
+
+export async function saveAdAction(
+  _state: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireAdmin();
+  const id = field(formData, "id");
+  const advertiser = field(formData, "advertiser").slice(0, 80);
+  const title = field(formData, "title").slice(0, 120);
+  const message = field(formData, "message").slice(0, 500);
+  const rawLink = field(formData, "link");
+  const link = normalizeAdLink(rawLink);
+  const placements: AdPlacement[] = [
+    "home_after_hero",
+    "home_between",
+    "browse_top",
+    "movie_banner",
+    "movie_popup",
+    "footer",
+  ];
+
+  if (!advertiser || !title || !message) {
+    return { ok: false, message: "Uzuza izina, umutwe n'ubutumwa bw'iyamamajwe" };
+  }
+  if (rawLink && !link) {
+    return { ok: false, message: "Isano igomba gutangira na http:// cyangwa https://" };
+  }
+  const now = new Date().toISOString();
+  const collection = await getAdsCollection();
+  const existing = id && ObjectId.isValid(id) ? await collection.findOne({ _id: new ObjectId(id) }) : null;
+  let imageId = existing && existing.imageId ? toId(existing.imageId) : "";
+  const file = formData.get("image");
+
+  if (file instanceof File && file.size > 0) {
+    const uploaded = await uploadPoster(file);
+    if (imageId) await deletePoster(imageId);
+    imageId = uploaded;
+  } else if (formData.has("removeImage") && imageId) {
+    await deletePoster(imageId);
+    imageId = "";
+  }
+
+  const document = {
+    advertiser,
+    title,
+    message,
+    imageId: imageId || null,
+    link,
+    ctaLabel: field(formData, "ctaLabel").slice(0, 60) || "Reba byinshi",
+    placements,
+    active: formData.has("active"),
+    popupFrequency: "every_page",
+    durationSeconds: 10,
+    priority: 0,
+    startAt: "",
+    endAt: "",
+    updatedAt: now,
+  };
+
+  if (existing) {
+    await collection.updateOne({ _id: new ObjectId(id) }, { $set: document });
+  } else {
+    await collection.insertOne({ ...document, views: 0, clicks: 0, createdAt: now });
+  }
+  revalidatePublic();
+  revalidatePath("/admin/ads");
+  return { ok: true, message: "Iyamamajwe yabikiwe" };
+}
+
+export async function toggleAdActiveAction(formData: FormData) {
+  await requireAdmin();
+  const id = field(formData, "id");
+  if (!ObjectId.isValid(id)) return;
+  const collection = await getAdsCollection();
+  const ad = await collection.findOne({ _id: new ObjectId(id) });
+  if (!ad) return;
+  await collection.updateOne(
+    { _id: new ObjectId(id) },
+    { $set: { active: !Boolean(ad.active), updatedAt: new Date().toISOString() } },
+  );
+  revalidatePublic();
+  revalidatePath("/admin/ads");
+}
+
+export async function deleteAdAction(formData: FormData) {
+  await requireAdmin();
+  const id = field(formData, "id");
+  if (!ObjectId.isValid(id)) return;
+  const collection = await getAdsCollection();
+  const ad = await collection.findOne({ _id: new ObjectId(id) });
+  if (!ad) return;
+  if (ad.imageId) await deletePoster(toId(ad.imageId));
+  await collection.deleteOne({ _id: new ObjectId(id) });
+  revalidatePublic();
+  revalidatePath("/admin/ads");
 }
 
 export async function uploadPosterOnlyAction(formData: FormData) {

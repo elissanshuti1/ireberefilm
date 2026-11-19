@@ -27,6 +27,7 @@ export default async function DashboardLayout({ children }: LayoutProps<"/admin"
           </div>
           <nav className="flex items-center gap-3 text-xs font-bold lg:hidden">
             <Link href="/admin/movies" className="text-white/55">Filime</Link>
+            <Link href="/admin/ads" className="text-white/55">Ads</Link>
             <Link href="/admin/genres" className="text-white/55">Ibyiciro</Link>
             <Link href="/admin/words" className="text-white/55">Amagambo</Link>
             <Link href="/admin/comments" className="text-white/55">Comments</Link>

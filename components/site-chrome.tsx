@@ -1,8 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import AdSlot from "@/components/ad-slot";
 import SiteHeader from "@/components/site-header";
 import SiteFooter from "@/components/site-footer";
+import type { AdRecord } from "@/lib/types";
 
 type Props = {
   children: React.ReactNode;
@@ -12,6 +14,7 @@ type Props = {
   advertiseLabel?: string;
   advertiseWhatsappNumber?: string;
   advertiseWhatsappMessage?: string;
+  ads?: AdRecord[];
 };
 
 export default function SiteChrome({
@@ -22,6 +25,7 @@ export default function SiteChrome({
   advertiseLabel,
   advertiseWhatsappNumber,
   advertiseWhatsappMessage,
+  ads = [],
 }: Props) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
@@ -37,6 +41,7 @@ export default function SiteChrome({
         advertiseWhatsappMessage={advertiseWhatsappMessage}
       />
       <div className="flex-1">{children}</div>
+      <AdSlot ads={ads} />
       <SiteFooter
         footerText={footerText}
         contactEmail={contactEmail}

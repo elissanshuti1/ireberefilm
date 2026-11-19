@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Film, LayoutDashboard, LogOut, MessageSquare, Pin, Sparkles, Tags, Type } from "lucide-react";
+import { Film, LayoutDashboard, LogOut, Megaphone, MessageSquare, Pin, Sparkles, Tags, Type } from "lucide-react";
 import { logoutAction } from "@/lib/actions";
 
 const links = [
   { href: "/admin", label: "Incio", icon: LayoutDashboard },
   { href: "/admin/movies", label: "Filime", icon: Film },
+  { href: "/admin/ads", label: "Yamamajwe", icon: Megaphone },
   { href: "/admin/genres", label: "Ibyiciro", icon: Tags },
   { href: "/admin/words", label: "Amagambo", icon: Type },
   { href: "/admin/comments", label: "Comments", icon: MessageSquare },

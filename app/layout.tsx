@@ -4,7 +4,7 @@ import "./globals.css";
 import AnalyticsTracker from "@/components/analytics-tracker";
 import JsonLd from "@/components/json-ld";
 import SiteChrome from "@/components/site-chrome";
-import { getSettings } from "@/lib/data";
+import { getAllActiveAds, getSettings } from "@/lib/data";
 import { absoluteUrl, getSiteUrl } from "@/lib/site";
 
 const manrope = Manrope({
@@ -60,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const settings = await getSettings();
+  const [settings, ads] = await Promise.all([getSettings(), getAllActiveAds()]);
   const siteUrl = getSiteUrl();
 
   return (
@@ -90,6 +90,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           advertiseLabel={settings.advertiseLabel}
           advertiseWhatsappNumber={settings.advertiseWhatsappNumber}
           advertiseWhatsappMessage={settings.advertiseWhatsappMessage}
+          ads={ads}
         >
           {children}
         </SiteChrome>

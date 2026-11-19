@@ -135,6 +135,48 @@ export type GenreRecord = {
   order: number;
 };
 
+export type AdPlacement =
+  | "home_after_hero"
+  | "home_between"
+  | "browse_top"
+  | "movie_banner"
+  | "movie_popup"
+  | "footer";
+
+export type AdPopupFrequency = "every_page" | "per_movie" | "per_visit";
+
+export type AdRecord = {
+  id: string;
+  advertiser: string;
+  title: string;
+  message: string;
+  imageId: string | null;
+  link: string;
+  ctaLabel: string;
+  placements: AdPlacement[];
+  active: boolean;
+  popupFrequency: AdPopupFrequency;
+  durationSeconds: number;
+  priority: number;
+  startAt: string;
+  endAt: string;
+  views: number;
+  clicks: number;
+  uniqueViews: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdEventRecord = {
+  id: string;
+  adId: string;
+  type: "view" | "click";
+  placement: string;
+  visitorId: string;
+  path: string;
+  createdAt: string;
+};
+
 export type SiteSettings = {
   siteName: string;
   tagline: string;
