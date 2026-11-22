@@ -34,7 +34,8 @@ export async function generateMetadata({
   const movie = await getMovieBySlug(slug);
   if (!movie) return { title: "Filime ntiboneka", robots: { index: false, follow: false } };
 
-  const canonical = `/movies/${encodeURIComponent(movie.slug)}`;
+  const canonical = absoluteUrl(`/movies/${encodeURIComponent(movie.slug)}`);
+  const image = absoluteUrl(movie.image || "/posters/placeholder.svg");
   const description =
     movie.synopsis ||
     `${movie.title} — agasobanuye mu Kinyarwanda urebe ku ireberefilm.`;
@@ -52,13 +53,13 @@ export async function generateMetadata({
       locale: "rw_RW",
       siteName: "ireberefilm",
       url: canonical,
-      images: [movie.image],
+      images: [image],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [movie.image],
+      images: [image],
     },
   };
 }

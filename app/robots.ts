@@ -1,17 +1,17 @@
 import type { MetadataRoute } from "next";
-import { getSiteUrl } from "@/lib/site";
+import { absoluteUrl } from "@/lib/site";
+
+export const dynamic = "force-dynamic";
+
+const allow: string[] = ["/", "/_next/static/", "/_next/image/", "/posters/", "/api/images/"];
+const disallow: string[] = ["/admin", "/api/"];
 
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl = getSiteUrl();
   return {
     rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: ["/admin", "/api/"],
-      },
+      { userAgent: ["Googlebot", "Googlebot-Image"], allow, disallow },
+      { userAgent: "*", allow, disallow },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
-    host: siteUrl,
+    sitemap: absoluteUrl("/sitemap.xml"),
   };
 }
